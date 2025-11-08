@@ -90,42 +90,60 @@ theorem invariance_of_domain (n : ℕ) (f : EuclideanSpace ℝ (Fin n) → Eucli
     rw [Metric.isOpen_iff] at hnbd2
     specialize hnbd2 x hnbd3
     rcases hnbd2 with ⟨ε, hε1, hε2⟩
-    let g := fun (v : EuclideanSpace ℝ (Fin n)) => f (x + ε • v)
+    let g := fun (v : EuclideanSpace ℝ (Fin n)) => f (x + (ε/2) • v)
     have hg_cont : Continuous g :=
         hf_cont.comp (continuous_const.add (continuous_const.smul continuous_id))
-    have hg_inj : Function.Injective g := by
+    have hg_inj : Function.Injective g
+     := by
         intro v1 v2 h
-        have H2 : ε • v1 = ε • v2 := by
-            have H := hf_inj h
-            rw [add_right_inj] at H
-            exact hf_inj (hf_inj (congrArg f (congrArg f (H))))
-        rw [← sub_eq_zero] at H2 ⊢
-        rw [← smul_sub] at H2
-        rcases smul_eq_zero.mp H2 with (hε | hsub)
+        have H := hf_inj h
+        rw [add_right_inj] at H
+        rw [← sub_eq_zero] at H ⊢
+        rw [← smul_sub] at H
+        have h10 : 0 < ε/2 := half_pos hε1
+        rw [smul_eq_zero] at H
+        rcases H with h11 | h12
         ·   exfalso
-            exact (ne_of_lt hε1) (id (Eq.symm hε))
-        · exact hsub
-    let shift := fun (v : EuclideanSpace ℝ (Fin n)) => x + ε • v
+            subst hfx
+            simp_all only [gt_iff_lt, zero_smul, add_zero, lt_self_iff_false, g]
+        · exact h12
+
+    let shift := fun (v : EuclideanSpace ℝ (Fin n)) => x + (ε/2) • v
     have h1 : g = f ∘ shift := by
             funext v
             rfl
     have h2 : shift '' (Euclidean.closedBall 0 1) ⊆ nbd := by
         unfold shift
-        have h6 : (fun v ↦ x + ε • v) = (fun w => x + w) ∘ (fun v => ε • v) := by rfl
-        rw [h6, Set.image_comp, Set.image_smul, Set.image_add]
+        have h6 : (fun v ↦ x + (ε/2) • v) = (fun w => x + w) ∘ (fun v => (ε/2) • v) := by rfl
+        rw [h6, Set.image_comp, Set.image_smul]
+        rw [ ← Set.singleton_add]
+        have hball_eq : Euclidean.closedBall (0 : EuclideanSpace ℝ (Fin n)) 1 =
+                Metric.closedBall 0 1 := by sorry
+        --     -- ext p
+        rw [hball_eq]
+        rw [smul_closedBall]
+        ·   simp only [Real.norm_eq_abs, singleton_add_closedBall]
+            have h7 : 0 < (ε/2) := half_pos hε1
+            have h8 : 0 ≤ (ε/2) := Std.le_of_lt h7
+            simp only [smul_zero, add_zero, mul_one]
+            rw [abs_of_nonneg h8]
+            transitivity Metric.ball x ε
+            ·   have h9 : ε/2 < ε := by exact div_two_lt_of_pos hε1
+                exact Metric.closedBall_subset_ball h9
+            · exact hε2
+        · exact zero_le_one' ℝ
 
-
+        -- simp only [smul_zero, add_zero]
+        -- · sorry
+        -- · sorry
+        -- rw [affinity_unitClosedBall (by linarith)]
         -- rw [h6, Set.image_comp]
         -- rw [Set.image_smul,  Set.image_add_left]
-
         -- rw [Set.image.smul]
-        -- rw [Set.]
-
         -- rw [affinity_unitClosedBall]
 
     have h3 : f '' nbd ⊆ f '' U := Set.image_mono hnbd1
     -- have h4 : g '' (Euclidean.ball (0 : EuclideanSpace ℝ (Fin n)) 1) ⊆ f '' U := by
-
     --     rw [h1, Set.image_comp]
     --     exact (Set.image_mono h2).trans h3
 
@@ -133,28 +151,22 @@ theorem invariance_of_domain (n : ℕ) (f : EuclideanSpace ℝ (Fin n) → Eucli
         rw [h1]
         rw [Set.image_comp]
         transitivity f '' nbd
-        · exact Set.image_mono h2
-        · exact h3
-
-
-
+        ·   exact Set.image_mono h2
+        ·   exact h3
 
     have restated := restated_IoD n g hg_cont hg_inj
     rw [mem_interior] at restated
     rcases restated with ⟨a, ha, ha1, ha2⟩
     use a
     constructor
-    ·  exact fun ⦃a_1⦄ a ↦ h4 (ha a)
+    ·   transitivity g '' Euclidean.closedBall 0 1
+        · exact ha
+        · exact h4
     constructor
     · exact ha1
     ·   unfold g at ha2
         rw [smul_zero, add_zero] at ha2
         exact Set.mem_of_eq_of_mem (hf_inj (congrArg f (id (Eq.symm hfx)))) ha2
-
-
-
-
-
 
     -- use g '' (Euclidean.ball 0 1)
     -- constructor

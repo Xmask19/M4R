@@ -4,16 +4,18 @@ import Mathlib.LinearAlgebra.FreeModule.PID
 import Mathlib.Topology.TietzeExtension
 import Mathlib.Analysis.Complex.Tietze
 
+variable {E} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
 
-theorem brouwer_fixed_point (n : ℕ) (f : Euclidean.closedBall ((0 : EuclideanSpace ℝ (Fin n))) 1 →
-        Euclidean.closedBall 0 1) (hf : Continuous f) : ∃ x, f x = x := by sorry
 
-theorem restated_IoD (n : ℕ) (f : EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n))
+theorem brouwer_fixed_point (f : Metric.closedBall ((0 : E)) 1 →
+        Metric.closedBall 0 1) (hf : Continuous f) : ∃ x, f x = x := by sorry
+
+theorem restated_IoD (f : E → E)
         (hf_cont : Continuous f) (hf_inj : Function.Injective f)
         : f 0 ∈ interior (f ''(Metric.closedBall 0 1)) := by sorry
 
 
-theorem IoD2 (n : ℕ) (f : EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n))
+theorem IoD2 (f : E → E)
         (hf_cont : ContinuousOn f (Metric.closedBall 0 1)) (hf_inj : Set.InjOn f (Metric.closedBall 0 1))
         : f 0 ∈ interior (f ''(Metric.closedBall 0 1)) := by
     let hBn_equiv := Equiv.Set.imageOfInjOn f (Metric.closedBall 0 1) hf_inj
@@ -22,18 +24,18 @@ theorem IoD2 (n : ℕ) (f : EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (F
     have hfinv_cont := Continuous.continuous_symm_of_equiv_compact_to_t2 hBn_equiv_cont
     have h_closed_image : IsClosed (f '' Metric.closedBall 0 1) :=
         ((isCompact_closedBall 0 1).image_of_continuousOn hf_cont).isClosed
-    let hBn_inv_cmap : C(f '' Metric.closedBall 0 1, (Metric.closedBall (0 : EuclideanSpace ℝ (Fin n)) 1)) :=
+    let hBn_inv_cmap : C(f '' Metric.closedBall 0 1, (Metric.closedBall (0 : E) 1)) :=
     ⟨hBn_equiv.symm, hfinv_cont⟩
     have hballimageclosed : IsClosed (f '' Metric.closedBall 0 1) := IsClosed.mono h_closed_image fun U a ↦ a
-    have : TietzeExtension (Metric.closedBall (0 : EuclideanSpace ℝ (Fin n)) 1) :=
+    have : TietzeExtension (Metric.closedBall (0 : E) 1) :=
         Set.instTietzeExtensionUnitClosedBall (𝕜 := ℝ)
     have hTietze_exists := ContinuousMap.exists_restrict_eq hballimageclosed hBn_inv_cmap
     obtain ⟨G, hG⟩ := hTietze_exists
     clear! h_closed_image
-    have hG0 : G (f 0) = (0 : EuclideanSpace ℝ (Fin n)) := by
-        -- let E := EuclideanSpace ℝ (Fin n)
+    have hG0 : G (f 0) = (0 : E) := by
+        -- let E := E
 
-        let fzero' : (f '' Metric.closedBall (0 : EuclideanSpace ℝ (Fin n)) 1) := ⟨f 0, ⟨0, by simp, rfl⟩⟩
+        let fzero' : (f '' Metric.closedBall (0 : E) 1) := ⟨f 0, ⟨0, by simp, rfl⟩⟩
         have := congr($hG fzero')
         conv_lhs at this => simp [fzero']
         rw [this]
@@ -45,12 +47,12 @@ theorem IoD2 (n : ℕ) (f : EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (F
         dsimp [hBn_inv_cmap, fzero']
         rw [H, Equiv.leftInverse_symm hBn_equiv]
 
-    have hStability_of_zero : ∀ Gtilde : EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n),
+    have hStability_of_zero : ∀ Gtilde : E → E,
             (∀ y ∈ (f '' (Metric.closedBall 0 1)), ‖G y - Gtilde y‖ ≤ 1 ) → ∃ y ∈ f '' (Metric.closedBall 0 1), Gtilde y = 0 := by
         intro Gtilde hy
 
 
-        let diff_fun : EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n) := fun x => x - Gtilde (f x)
+        let diff_fun : E → E := fun x => x - Gtilde (f x)
 
 
 
@@ -66,7 +68,7 @@ theorem IoD2 (n : ℕ) (f : EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (F
 
 
 
-theorem invariance_of_domain (n : ℕ) (f : EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n))
+theorem invariance_of_domain (f : E → E)
         (hf_cont : Continuous f) (hf_inj : Function.Injective f) : IsOpenMap f := by
     intro U hU
     rw [isOpen_iff_forall_mem_open]
@@ -83,7 +85,7 @@ theorem invariance_of_domain (n : ℕ) (f : EuclideanSpace ℝ (Fin n) → Eucli
         ·   exact hball
     specialize hclosedball x hxU
     rcases hclosedball with ⟨ε, hε , hclosedball⟩
-    let g := fun (v : EuclideanSpace ℝ (Fin n)) => ε • v + x
+    let g := fun (v : E) => ε • v + x
     have hg_cont : Continuous g := ((continuous_const_smul ε).add continuous_const : Continuous g)
     have hg_inj : Function.Injective g:= by
         intro v1 v2 himeq
@@ -94,7 +96,7 @@ theorem invariance_of_domain (n : ℕ) (f : EuclideanSpace ℝ (Fin n) → Eucli
     have he_cont : Continuous e := Continuous.comp hf_cont hg_cont
     have he_inj : Function.Injective e := Function.Injective.comp hf_inj hg_inj
     have h_interior : e 0 ∈ interior (e '' (Metric.closedBall 0 1)) :=
-        restated_IoD n e he_cont he_inj
+        restated_IoD e he_cont he_inj
     have h_g_eq : g '' (Metric.closedBall 0 1) = Metric.closedBall x ε := by
         unfold g
         rw [Eq.symm (Set.image_image (fun v ↦ v + x) (fun v ↦ ε • v) (Metric.closedBall 0 1)),

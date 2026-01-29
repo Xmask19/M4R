@@ -45,31 +45,21 @@ theorem IoD2 (n : ℕ) (f : EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (F
         dsimp [hBn_inv_cmap, fzero']
         rw [H, Equiv.leftInverse_symm hBn_equiv]
 
+    have hStability_of_zero : ∀ Gtilde : EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n),
+            (∀ y ∈ (f '' (Metric.closedBall 0 1)), ‖G y - Gtilde y‖ ≤ 1 ) → ∃ y ∈ f '' (Metric.closedBall 0 1), Gtilde y = 0 := by
+        intro Gtilde hy
+
+
+        let diff_fun : EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n) := fun x => x - Gtilde (f x)
 
 
 
 
         sorry
 
-        -- have h_eq_at_f0 : G (f 0) = hBn_inv_cmap ⟨f 0, by simp⟩ := by
-        --     rw [← ContinuousMap.restrict_apply (s := f '' Metric.closedBall 0 1) G ⟨f 0, by simp⟩, hG]
 
 
 
-
-
-
-
-
-
-
-    -- have h_closed : IsClosed (f '' Metric.closedBall 0 1) := by
-    -- have hclosed_map := Continuous.isClosedMap hBn_equiv_cont
-    -- have hballclosed : IsClosed (Metric.closedBall (0 : EuclideanSpace ℝ (Fin n))  1) := Metric.isClosed_closedBall
-    -- have hballimgclosed : IsClosed (hBn_equiv '' (Metric.closedBall (0)  1)) := by exact?
-    -- let X := Metric.closedBall (0 : EuclideanSpace ℝ (Fin n)) 1
-    -- have hBn_img_closed : IsClosed (f ''(Metric.closedBall 0 1)):= by
-    -- let G := ContinuousMap.exists_restrict_eq
 
 
 

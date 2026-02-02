@@ -6,9 +6,9 @@ import Mathlib.Analysis.Complex.Tietze
 
 variable {E} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
 
-
-theorem brouwer_fixed_point (f : Metric.closedBall ((0 : E)) 1 →
-        Metric.closedBall 0 1) (hf : Continuous f) : ∃ x, f x = x := by sorry
+-- def zero : E := 0 : E
+-- {x : E // x ∈ Metric.closedBall 0 1 } → {x : E // x ∈ Metric.closedBall 0 1 }
+theorem brouwer_fixed_point (f : (Metric.closedBall (0 : E) 1) → (Metric.closedBall 0 1)) (hf : Continuous f) : ∃ x, f x = x := by sorry
 
 theorem restated_IoD (f : E → E)
         (hf_cont : Continuous f) (hf_inj : Function.Injective f)
@@ -46,7 +46,7 @@ theorem IoD2 (f : E → E)
             (Continuous Gtilde) → (∀ y ∈ (f '' (Metric.closedBall 0 1)), ‖G y - Gtilde y‖ ≤ 1 ) → ∃ y ∈ f '' (Metric.closedBall 0 1), Gtilde y = 0 := by
         intro Gtilde hGtilde hy
         let diff_fun : E → E := fun x => x - Gtilde (f x)
-        have hMaps_To : Set.MapsTo diff_fun (Metric.closedBall 0 1) (Metric.closedBall 0 1) := by
+        have hMaps_To : Set.MapsTo diff_fun (Metric.closedBall (0 : E) 1) (Metric.closedBall (0 : E) 1) := by
             intro x hx
             dsimp [diff_fun]
             have hxeq : x = G (f x) := by
@@ -74,9 +74,30 @@ theorem IoD2 (f : E → E)
             exact ContinuousOn.sub (continuousOn_id' (Metric.closedBall 0 1)) (Continuous.comp_continuousOn' hGtilde hf_cont)
         have diff_fun_cont := ContinuousOn.mapsToRestrict diff_fun_cont_on hMaps_To
 
-        have hBrouwer := brouwer_fixed_point (Set.MapsTo.restrict diff_fun (Metric.closedBall 0 1) (Metric.closedBall 0 1) hMaps_To)
+        have hBrouwer := brouwer_fixed_point (Set.MapsTo.restrict diff_fun (Metric.closedBall (0:E)  1) (Metric.closedBall 0 1) hMaps_To)
 
         have hfixed := hBrouwer diff_fun_cont
+
+        rcases hfixed with ⟨x, hx⟩
+        use f x
+
+        constructor
+        .   simp only [Set.mem_image, Metric.mem_closedBall, dist_zero_right]
+            use x
+            constructor
+
+            ·
+                simp_all [hBn_equiv, hBn_inv_cmap, diff_fun]
+                obtain ⟨val, property⟩ := x
+                exact mem_closedBall_zero_iff.mp property
+            ·   rfl
+        ·
+
+            dsimp [diff_fun] at hx
+            rw [Subtype.ext_iff] at hx
+            simp only [Set.MapsTo.val_restrict_apply, sub_eq_self] at hx
+            exact (AddOpposite.op_eq_zero_iff (Gtilde (f ↑x))).mp (congrArg AddOpposite.op hx)
+
 
 
 

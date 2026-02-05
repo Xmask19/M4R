@@ -51,20 +51,13 @@ theorem IoD2 (f : E → E)
             dsimp [diff_fun]
             have hxeq : x = G (f x) := by
                 have hfx : f x ∈ f '' (Metric.closedBall 0 1) := Set.mem_image_of_mem f hx
-                rw [← G.restrict_apply_mk _ _ hfx]
-                rw [hG]
-                dsimp [hBn_inv_cmap]
-                dsimp [hBn_equiv]
+                rw [← G.restrict_apply_mk _ _ hfx, hG]
+                dsimp [hBn_inv_cmap, hBn_equiv]
                 let e := Equiv.Set.imageOfInjOn f (Metric.closedBall 0 1) hf_inj
-                have h1 : e ⟨x, Metric.mem_closedBall.mpr hx⟩ = ⟨f (x : E), hfx⟩ := by
+                have hfxeq : ⟨f (x : E), hfx⟩ = e ⟨x, Metric.mem_closedBall.mpr hx⟩   := by
                     apply Subtype.ext
                     rfl
-                have h_symm_apply : e.symm ((Equiv.Set.imageOfInjOn f (Metric.closedBall 0 1) hf_inj) ⟨x, Metric.mem_closedBall.mpr hx⟩) = ⟨x, Metric.mem_closedBall.mpr hx⟩ := e.symm_apply_apply ⟨x, Metric.mem_closedBall.mpr hx⟩
-                have h2 : e.symm ⟨f x, hfx⟩ = e.symm (e ⟨x, Metric.mem_closedBall.mpr hx⟩) := by
-                    rw [h1]
-                have h3 : e.symm ⟨f x, hfx⟩ = x := by
-                    rw [h2, h_symm_apply]
-                rw [h3]
+                rw [hfxeq, (e.symm_apply_apply ⟨x, Metric.mem_closedBall.mpr hx⟩)]
             nth_rw 1 [hxeq]
             specialize hy (f x)
             have h4 : f x ∈ f '' Metric.closedBall 0 1 := Set.mem_image_of_mem f hx
@@ -73,30 +66,55 @@ theorem IoD2 (f : E → E)
         have diff_fun_cont_on : ContinuousOn diff_fun (Metric.closedBall 0 1):= by
             exact ContinuousOn.sub (continuousOn_id' (Metric.closedBall 0 1)) (Continuous.comp_continuousOn' hGtilde hf_cont)
         have diff_fun_cont := ContinuousOn.mapsToRestrict diff_fun_cont_on hMaps_To
-
         have hBrouwer := brouwer_fixed_point (Set.MapsTo.restrict diff_fun (Metric.closedBall (0:E)  1) (Metric.closedBall 0 1) hMaps_To)
-
         have hfixed := hBrouwer diff_fun_cont
-
         rcases hfixed with ⟨x, hx⟩
-        use f x
-
-        constructor
-        .   simp only [Set.mem_image, Metric.mem_closedBall, dist_zero_right]
-            use x
-            constructor
-
-            ·
-                simp_all [hBn_equiv, hBn_inv_cmap, diff_fun]
-                obtain ⟨val, property⟩ := x
-                exact mem_closedBall_zero_iff.mp property
-            ·   rfl
-        ·
-
-            dsimp [diff_fun] at hx
+        refine ⟨f x, ⟨⟨x ,⟨?_, rfl⟩⟩, ?_⟩⟩
+        .   simp only [Metric.mem_closedBall, dist_zero_right]
+            exact mem_closedBall_zero_iff.mp x.2
+        ·   dsimp [diff_fun] at hx
             rw [Subtype.ext_iff] at hx
             simp only [Set.MapsTo.val_restrict_apply, sub_eq_self] at hx
             exact (AddOpposite.op_eq_zero_iff (Gtilde (f ↑x))).mp (congrArg AddOpposite.op hx)
+    by_contra hnotinterior
+    have hGcont : Continuous G :=  ContinuousMap.continuous G
+    have hGconton := Continuous.continuousOn hGcont (s := f '' (Metric.closedBall 0 1))
+    -- have h8 : IsCompact (Metric.closedBall 0 1) := by exact isCompact_closedBall 0 1
+    have himgcompact := IsCompact.image_of_continuousOn (isCompact_closedBall 0 1) hf_cont
+    have hGuniformcont := IsCompact.uniformContinuousOn_of_continuous himgcompact hGconton
+    rw [Metric.uniformContinuousOn_iff_le] at hGuniformcont
+    specialize hGuniformcont 0.1
+    have h0 : 0.1 > (0 : ℝ) := by
+        norm_num
+    apply hGuniformcont at h0
+    rcases h0 with ⟨ε , hε1, hε2⟩
+    specialize hε2 (f 0)
+    have h1 : (0:E) ∈ (Metric.closedBall 0 1) := by simp
+    have h2 := Set.mem_image_of_mem f h1
+    apply hε2 at h2
+
+    have hcexists : ∃ c, dist c (f 0) < ε ∧ c ∉ f '' Metric.closedBall 0 1 := by
+
+
+        -- by_contra! hcnot
+
+
+
+
+
+
+
+
+    -- have h1 : f (0:E) ∈ f '' Metric.closedBall (0:E) 1 := by
+
+
+
+
+
+
+
+
+
 
 
 

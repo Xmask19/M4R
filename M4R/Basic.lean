@@ -88,15 +88,49 @@ theorem IoD2 (f : E → E)
         ·   exact Metric.mem_ball.mp hc1
         ·   exact (Set.mem_compl_iff (f '' Metric.closedBall 0 1) c).mp hc2
 
-    let sigma1 : Set E := {y ∈ f '' (Metric.closedBall 0 1) | ‖y‖ ≥ ε}
-    let sigma2 : Set E := {y | ‖y‖ = ε }
+    let sigma1 : Set E := {y ∈ f '' (Metric.closedBall 0 1) | ‖y - c‖ ≥ ε}
+    let sigma2 : Set E := {y | ‖y - c‖ = ε }
 
     let sigma := sigma1 ∪ sigma2
 
+    have hsigmacompact : IsCompact sigma := by
+        rw [Metric.isCompact_iff_isClosed_bounded]
+        constructor
+        ·
+            apply IsClosed.union
+            ·
+                have hsigma1eq : sigma1 = (f '' Metric.closedBall 0 1) ∩ {y | ‖y - c‖ ≥ ε } := by
+                    ext x
+                    constructor
+                    ·   intro hx
+                        exact
+                          (Set.mem_inter_iff x (f '' Metric.closedBall 0 1) {y | ‖y - c‖ ≥ ε}).mpr
+                            hx
+
+                    ·   rw [Set.mem_inter_iff]
+                        intro ⟨hx1, hx2⟩
+                        constructor
+                        ·   exact (Set.mem_image f (Metric.closedBall 0 1) x).mpr hx1
+                        ·   exact le_of_eq_of_le rfl hx2
+                have h1 : IsClosed (f '' Metric.closedBall 0 1) := isClosed_coinduced.mpr hballimageclosed
+                have h2 : IsClosed {y | ‖y - c‖ ≥ ε } := by
+                    have h3 : IsOpen {y | ‖y - c‖ ≥ ε }ᶜ := by
+                        have h4 : {y | ‖y - c‖ ≥ ε}ᶜ = Metric.ball c ε := by
+                            ext x
+                            constructor
+                            ·   intro hx
+                                rw [Set.mem_compl_iff] at hx
 
 
+                        rw [h4]
+                        exact Metric.isOpen_ball
+                    exact { isOpen_compl := h3 }
 
-        -- simp only [imp_not_comm] at hnotinterior
+
+            · sorry
+
+        · sorry
+
 
 
 

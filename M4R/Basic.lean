@@ -6,7 +6,6 @@ import Mathlib.Analysis.Complex.Tietze
 
 variable {E} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
 
-#set_option linter.style.longLine false
 -- def zero : E := 0 : E
 -- {x : E // x ∈ Metric.closedBall 0 1 } → {x : E // x ∈ Metric.closedBall 0 1 }
 theorem brouwer_fixed_point (f : (Metric.closedBall (0 : E) 1) → (Metric.closedBall 0 1)) (hf : Continuous f) : ∃ x, f x = x := by sorry
@@ -74,8 +73,33 @@ theorem IoD2 (f : E → E)
     have h2 := Set.mem_image_of_mem f h1
     apply hε2 (f 0) at h2
 
-    have hcexists : ∃ c, dist c (f 0) < ε ∧ c ∉ f '' Metric.closedBall 0 1 := by sorry
-    sorry
+    have ⟨c, hc1, hc2⟩ : ∃ c, dist c (f 0) < ε ∧ c ∉ f '' Metric.closedBall 0 1 := by
+        rw [mem_interior] at hnotinterior
+        push_neg at hnotinterior
+        specialize hnotinterior (Metric.ball (f 0) ε)
+        simp only [Metric.isOpen_ball, Metric.mem_ball, dist_self,
+          forall_const] at hnotinterior
+        rw [imp_not_comm] at hnotinterior
+        have hnotball := hnotinterior hε1
+        rw [Set.not_subset] at hnotball
+        rcases hnotball with ⟨c, hc1, hc2⟩
+        use c
+        constructor
+        ·   exact Metric.mem_ball.mp hc1
+        ·   exact (Set.mem_compl_iff (f '' Metric.closedBall 0 1) c).mp hc2
+
+    let sigma1 : Set E := {y ∈ f '' (Metric.closedBall 0 1) | ‖y‖ ≥ ε}
+    let sigma2 : Set E := {y | ‖y‖ = ε }
+
+    let sigma := sigma1 ∪ sigma2
+
+
+
+
+        -- simp only [imp_not_comm] at hnotinterior
+
+
+
 
         -- by_contra! hcnot
 

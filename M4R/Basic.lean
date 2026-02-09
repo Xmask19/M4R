@@ -132,7 +132,38 @@ theorem IoD2 (f : E → E)
                     exact Set.sep_subset (f '' Metric.closedBall 0 1) fun x ↦ ‖x - c‖ ≥ ε
                 exact Bornology.IsBounded.subset himgbounded hsigma1subset
             ·   exact Metric.isBounded_sphere
-
+    have hcnotinsigma : c ∉ sigma := by
+        by_contra hcinsigma
+        rw [Set.mem_union] at hcinsigma
+        rcases hcinsigma with h1 | h2
+        ·   rw [Set.mem_sep_iff] at h1
+            rcases h1 with ⟨h1, h2⟩
+            simp only [sub_self, norm_zero, ge_iff_le] at h2
+            aesop
+        ·   have h3 : c ∈ Metric.sphere c ε := Metric.mem_sphere.mpr h2
+            rw [mem_sphere_iff_norm] at h3
+            simp only [sub_self, norm_zero] at h3
+            aesop
+    let Phi : E → E := fun y => (max (ε / ‖y - c‖) (1 : ℝ)) • y
+    -- have hPhiimg : Phi '' (f '' Metric.closedBall 0 1) = sigma := by
+    --     ext x
+    have hPhicont : ContinuousOn Phi (f '' Metric.closedBall 0 1) := by
+        apply ContinuousOn.smul
+        ·   rw [continuousOn_iff_continuous_restrict]
+            apply Continuous.max
+            ·   apply Continuous.div
+                ·   exact continuous_const
+                ·   apply Continuous.norm
+                    apply Continuous.sub
+                    ·   exact continuous_subtype_val
+                    ·   exact continuous_const
+                ·   intro x
+                    simp only [ne_eq, norm_eq_zero]
+                    by_contra hx
+                    rw [sub_eq_zero] at hx
+                    aesop
+            ·   exact continuous_const
+        ·   exact continuousOn_id' (f '' Metric.closedBall 0 1)
 
 
 

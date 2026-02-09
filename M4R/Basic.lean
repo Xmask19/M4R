@@ -6,9 +6,12 @@ import Mathlib.Analysis.Complex.Tietze
 
 variable {E} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
 
+
+set_option linter.unnecessarySimpa false
 -- def zero : E := 0 : E
 -- {x : E // x ∈ Metric.closedBall 0 1 } → {x : E // x ∈ Metric.closedBall 0 1 }
-theorem brouwer_fixed_point (f : (Metric.closedBall (0 : E) 1) → (Metric.closedBall 0 1)) (hf : Continuous f) : ∃ x, f x = x := by sorry
+theorem brouwer_fixed_point (f : (Metric.closedBall (0 : E) 1) → (Metric.closedBall 0 1)) (hf : Continuous f) :
+        ∃ x, f x = x := by sorry
 
 theorem restated_IoD (f : E → E)
         (hf_cont : Continuous f) (hf_inj : Function.Injective f)
@@ -72,7 +75,6 @@ theorem IoD2 (f : E → E)
     have h1 : (0:E) ∈ (Metric.closedBall 0 1) := by simp
     have h2 := Set.mem_image_of_mem f h1
     apply hε2 (f 0) at h2
-
     have ⟨c, hc1, hc2⟩ : ∃ c, dist c (f 0) < ε ∧ c ∉ f '' Metric.closedBall 0 1 := by
         rw [mem_interior] at hnotinterior
         push_neg at hnotinterior
@@ -87,57 +89,53 @@ theorem IoD2 (f : E → E)
         constructor
         ·   exact Metric.mem_ball.mp hc1
         ·   exact (Set.mem_compl_iff (f '' Metric.closedBall 0 1) c).mp hc2
-
     let sigma1 : Set E := {y ∈ f '' (Metric.closedBall 0 1) | ‖y - c‖ ≥ ε}
-    let sigma2 : Set E := {y | ‖y - c‖ = ε }
-
+    let sigma2 : Set E := Metric.sphere c ε
     let sigma := sigma1 ∪ sigma2
-
     have hsigmacompact : IsCompact sigma := by
         rw [Metric.isCompact_iff_isClosed_bounded]
         constructor
-        ·
-            apply IsClosed.union
-            ·
-                have hsigma1eq : sigma1 = (f '' Metric.closedBall 0 1) ∩ {y | ‖y - c‖ ≥ ε } := by
+        ·   apply IsClosed.union
+            ·   have hsigma1eq : sigma1 = (f '' Metric.closedBall 0 1) ∩ {y | ‖y - c‖ ≥ ε } := by
                     ext x
                     constructor
                     ·   intro hx
                         exact
                           (Set.mem_inter_iff x (f '' Metric.closedBall 0 1) {y | ‖y - c‖ ≥ ε}).mpr
                             hx
-
                     ·   rw [Set.mem_inter_iff]
                         intro ⟨hx1, hx2⟩
                         constructor
                         ·   exact (Set.mem_image f (Metric.closedBall 0 1) x).mpr hx1
                         ·   exact le_of_eq_of_le rfl hx2
-                have h1 : IsClosed (f '' Metric.closedBall 0 1) := isClosed_coinduced.mpr hballimageclosed
                 have h2 : IsClosed {y | ‖y - c‖ ≥ ε } := by
                     have h3 : IsOpen {y | ‖y - c‖ ≥ ε }ᶜ := by
                         have h4 : {y | ‖y - c‖ ≥ ε}ᶜ = Metric.ball c ε := by
                             ext x
                             constructor
                             ·   intro hx
-                                rw [Set.mem_compl_iff] at hx
-
-
+                                rw [Set.mem_compl_iff, Set.notMem_setOf_iff, not_le] at hx
+                                exact mem_ball_iff_norm.mpr hx
+                            ·   intro hx
+                                simp only [ge_iff_le, Set.mem_compl_iff, Set.mem_setOf_eq, not_le]
+                                exact mem_ball_iff_norm.mp hx
                         rw [h4]
                         exact Metric.isOpen_ball
                     exact { isOpen_compl := h3 }
+                exact IsClosed.and hballimageclosed h2
+            ·   exact Metric.isClosed_sphere
+
+        ·   rw [Bornology.isBounded_union]
+            constructor
+            ·   have himgbounded := IsCompact.isBounded himgcompact
+                have hsigma1subset : sigma1 ⊆ (f '' Metric.closedBall 0 1) := by
+                    exact Set.sep_subset (f '' Metric.closedBall 0 1) fun x ↦ ‖x - c‖ ≥ ε
+                exact Bornology.IsBounded.subset himgbounded hsigma1subset
+            ·   exact Metric.isBounded_sphere
 
 
-            · sorry
-
-        · sorry
 
 
-
-
-
-        -- by_contra! hcnot
-
-    -- have h1 : f (0:E) ∈ f '' Metric.closedBall (0:E) 1 := by
 
 
 

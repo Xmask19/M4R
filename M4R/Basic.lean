@@ -33,7 +33,6 @@ theorem IoD2 (f : E → E)
         let fzero' : (f '' Metric.closedBall (0 : E) 1) := ⟨f 0, ⟨0, by simp, rfl⟩⟩
         have := congr($hG fzero')
         conv_lhs at this => simp [fzero']
-
         have H : (⟨f 0, ⟨0, by simp, rfl⟩⟩ : f '' Metric.closedBall 0 1) = hBn_equiv ⟨0, by simp⟩ := by
             apply Subtype.ext
             rfl
@@ -164,6 +163,15 @@ theorem IoD2 (f : E → E)
                     aesop
             ·   exact continuous_const
         ·   exact continuousOn_id' (f '' Metric.closedBall 0 1)
+
+    have hGavoids : ∀ y ∈ sigma1, G y ≠ (0 : E) := by
+        intro y hy
+        by_contra hG
+        rw? at hG
+
+
+
+
 
 
 

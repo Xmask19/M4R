@@ -91,45 +91,47 @@ theorem IoD2 (f : E → E)
     let sigma1 : Set E := {y ∈ f '' (Metric.closedBall 0 1) | ‖y - c‖ ≥ ε}
     let sigma2 : Set E := Metric.sphere c ε
     let sigma := sigma1 ∪ sigma2
-    have hsigmacompact : IsCompact sigma := by
+    -- change this proof to show that sigma1 and sigma2 are each compact as you use compactness of sigma1 later
+    have hsigma1compact : IsCompact sigma1 := by
         rw [Metric.isCompact_iff_isClosed_bounded]
         constructor
-        ·   apply IsClosed.union
-            ·   have hsigma1eq : sigma1 = (f '' Metric.closedBall 0 1) ∩ {y | ‖y - c‖ ≥ ε } := by
-                    ext x
+        ·   have hsigma1eq : sigma1 = (f '' Metric.closedBall 0 1) ∩ {y | ‖y - c‖ ≥ ε } := by
+                ext x
+                constructor
+                ·   intro hx
+                    exact
+                        (Set.mem_inter_iff x (f '' Metric.closedBall 0 1) {y | ‖y - c‖ ≥ ε}).mpr
+                        hx
+                ·   rw [Set.mem_inter_iff]
+                    intro ⟨hx1, hx2⟩
                     constructor
-                    ·   intro hx
-                        exact
-                          (Set.mem_inter_iff x (f '' Metric.closedBall 0 1) {y | ‖y - c‖ ≥ ε}).mpr
-                            hx
-                    ·   rw [Set.mem_inter_iff]
-                        intro ⟨hx1, hx2⟩
+                    ·   exact (Set.mem_image f (Metric.closedBall 0 1) x).mpr hx1
+                    ·   exact le_of_eq_of_le rfl hx2
+            have h2 : IsClosed {y | ‖y - c‖ ≥ ε } := by
+                have h3 : IsOpen {y | ‖y - c‖ ≥ ε }ᶜ := by
+                    have h4 : {y | ‖y - c‖ ≥ ε}ᶜ = Metric.ball c ε := by
+                        ext x
                         constructor
-                        ·   exact (Set.mem_image f (Metric.closedBall 0 1) x).mpr hx1
-                        ·   exact le_of_eq_of_le rfl hx2
-                have h2 : IsClosed {y | ‖y - c‖ ≥ ε } := by
-                    have h3 : IsOpen {y | ‖y - c‖ ≥ ε }ᶜ := by
-                        have h4 : {y | ‖y - c‖ ≥ ε}ᶜ = Metric.ball c ε := by
-                            ext x
-                            constructor
-                            ·   intro hx
-                                rw [Set.mem_compl_iff, Set.notMem_setOf_iff, not_le] at hx
-                                exact mem_ball_iff_norm.mpr hx
-                            ·   intro hx
-                                simp only [ge_iff_le, Set.mem_compl_iff, Set.mem_setOf_eq, not_le]
-                                exact mem_ball_iff_norm.mp hx
-                        rw [h4]
-                        exact Metric.isOpen_ball
-                    exact { isOpen_compl := h3 }
-                exact IsClosed.and hballimageclosed h2
-            ·   exact Metric.isClosed_sphere
-
-        ·   rw [Bornology.isBounded_union]
+                        ·   intro hx
+                            rw [Set.mem_compl_iff, Set.notMem_setOf_iff, not_le] at hx
+                            exact mem_ball_iff_norm.mpr hx
+                        ·   intro hx
+                            simp only [ge_iff_le, Set.mem_compl_iff, Set.mem_setOf_eq, not_le]
+                            exact mem_ball_iff_norm.mp hx
+                    rw [h4]
+                    exact Metric.isOpen_ball
+                exact { isOpen_compl := h3 }
+            exact IsClosed.and hballimageclosed h2
+        ·   have himgbounded := IsCompact.isBounded himgcompact
+            have hsigma1subset : sigma1 ⊆ (f '' Metric.closedBall 0 1) := by
+                exact Set.sep_subset (f '' Metric.closedBall 0 1) fun x ↦ ‖x - c‖ ≥ ε
+            exact Bornology.IsBounded.subset himgbounded hsigma1subset
+    have hsigmacompact : IsCompact sigma := by
+        apply IsCompact.union
+        ·   assumption
+        ·   rw [Metric.isCompact_iff_isClosed_bounded]
             constructor
-            ·   have himgbounded := IsCompact.isBounded himgcompact
-                have hsigma1subset : sigma1 ⊆ (f '' Metric.closedBall 0 1) := by
-                    exact Set.sep_subset (f '' Metric.closedBall 0 1) fun x ↦ ‖x - c‖ ≥ ε
-                exact Bornology.IsBounded.subset himgbounded hsigma1subset
+            ·   exact Metric.isClosed_sphere
             ·   exact Metric.isBounded_sphere
     have hcnotinsigma : c ∉ sigma := by
         by_contra hcinsigma
@@ -163,23 +165,54 @@ theorem IoD2 (f : E → E)
                     aesop
             ·   exact continuous_const
         ·   exact continuousOn_id' (f '' Metric.closedBall 0 1)
-
     have hGavoids : ∀ y ∈ sigma1, G y ≠ (0 : E) := by
         intro y hy
-        by_contra hG
-        rw? at hG
+        by_contra hGeq
+        have hfinvinj : Function.Injective hBn_inv_cmap := hBn_equiv.symm.injective
+        -- have hGinjective : Function.Injective ((f '' Metric.closedBall 0 1).restrict G)  := by
+        have hG_inj_on_image : Set.InjOn G (f '' Metric.closedBall 0 1) := by
+            intro x hx y hy h
+            let x' : f '' Metric.closedBall 0 1 := ⟨x, hx⟩
+            let y' : f '' Metric.closedBall 0 1 := ⟨y, hy⟩
+            have hx_eq : G x = hBn_inv_cmap x' := by
+                rw [← ContinuousMap.restrict_apply G (f '' Metric.closedBall 0 1) x', hG]
+            have hy_eq : G y = hBn_inv_cmap y' := by
+                rw [← ContinuousMap.restrict_apply G (f '' Metric.closedBall 0 1) y', hG]
+            rw [hx_eq, hy_eq] at h
+            have h_eq : x' = y' := hfinvinj h
+            exact congr_arg Subtype.val h_eq
+        have hyeq : y = f 0 := by
+            have hyin : y ∈ f '' Metric.closedBall 0 1 := by
+                rw [Set.mem_sep_iff] at hy
+                rcases hy with ⟨hy1, hy2⟩
+                exact (Set.mem_image f (Metric.closedBall 0 1) y).mpr hy1
+            have hf0in : f 0 ∈ f '' Metric.closedBall 0 1 := Set.mem_image_of_mem f h1
+            specialize hG_inj_on_image hyin hf0in
+            have heq := Eq.trans hGeq hG0.symm
+            have heq2 : G y = G (f 0) := SetCoe.ext heq
+            apply hG_inj_on_image at heq2
+            assumption
+        rw [Set.mem_sep_iff, hyeq] at hy
+        rcases hy with ⟨hy1, hy2⟩
+        rw [dist_eq_norm, ← norm_neg, neg_sub] at hc1
+        linarith
+    let normG : E → ℝ := fun y => ‖(G y : E)‖
+    have hgnormconton : ContinuousOn normG (f '' Metric.closedBall 0 1) := by
+        apply ContinuousOn.norm
+        exact continuous_subtype_val.comp_continuousOn hGconton
+    have hgnormconton1 : ContinuousOn normG sigma1 := by
+        apply ContinuousOn.norm
+        have hsigma1subset : sigma1 ⊆ f '' Metric.closedBall 0 1 := Set.sep_subset (f '' Metric.closedBall 0 1) fun x ↦ ‖x - c‖ ≥ ε
+        exact continuous_subtype_val.comp_continuousOn (ContinuousOn.mono hGconton hsigma1subset)
+    have hGbdd := IsCompact.bddBelow_image hsigma1compact hgnormconton1
 
+    -- have himgnotempty : (f '' Metric.closedBall 0 1).Nonempty := by simp
+    -- have ⟨z, hz, hmin⟩ := IsCompact.exists_isMinOn himgcompact himgnotempty hgnormconton
 
-
-
-
-
-
-
-
-
-
-
+    -- have hδ₀_pos : 0 < normG z := by
+    --     dsimp [normG]
+    --     simp only [norm_pos_iff, ne_eq]
+    --     specialize hGavoids z
 
 theorem invariance_of_domain (f : E → E)
         (hf_cont : Continuous f) (hf_inj : Function.Injective f) : IsOpenMap f := by

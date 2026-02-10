@@ -204,9 +204,21 @@ theorem IoD2 (f : E → E)
         apply ContinuousOn.norm
         have hsigma1subset : sigma1 ⊆ f '' Metric.closedBall 0 1 := Set.sep_subset (f '' Metric.closedBall 0 1) fun x ↦ ‖x - c‖ ≥ ε
         exact continuous_subtype_val.comp_continuousOn (ContinuousOn.mono hGconton hsigma1subset)
-    have hGbdd := IsCompact.bddBelow_image hsigma1compact hgnormconton1
+    have himgnotempty : sigma1.Nonempty := by
+        have hsphere : Metric.sphere c ε ⊆ sigma1 := by
+            intro x hx
+            rw [Set.mem_sep_iff]
+            constructor
+            ·
+            ·
+                -- simp only [mem_sphere_iff_norm] at hx
+                -- linarith
 
-    -- have himgnotempty : (f '' Metric.closedBall 0 1).Nonempty := by simp
+    -- have hGbdd := IsCompact.exists_isMinOn hsigma1compact hgnormconton1
+
+
+
+    --
     -- have ⟨z, hz, hmin⟩ := IsCompact.exists_isMinOn himgcompact himgnotempty hgnormconton
 
     -- have hδ₀_pos : 0 < normG z := by

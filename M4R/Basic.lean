@@ -204,13 +204,77 @@ theorem IoD2 (f : E → E)
         apply ContinuousOn.norm
         have hsigma1subset : sigma1 ⊆ f '' Metric.closedBall 0 1 := Set.sep_subset (f '' Metric.closedBall 0 1) fun x ↦ ‖x - c‖ ≥ ε
         exact continuous_subtype_val.comp_continuousOn (ContinuousOn.mono hGconton hsigma1subset)
-    have himgnotempty : sigma1.Nonempty := by
-        have hsphere : Metric.sphere c ε ⊆ sigma1 := by
-            intro x hx
-            rw [Set.mem_sep_iff]
+
+    have hδ : ∃ (δ : ℝ), 0 < δ ∧ δ < 0.1 ∧ ∀ y ∈ sigma1, δ ≤ ‖(G y : E)‖ := by
+        by_cases hP : sigma1.Nonempty
+        ·   have ⟨z, hz, hmin⟩ := IsCompact.exists_isMinOn hsigma1compact hP hgnormconton1
+            have hδ'pos : 0 < normG z := norm_pos_iff.mpr (hGavoids z hz)
+            let δ := min (normG z) (0.05)
+            have hδ_pos : 0 < δ := lt_min_iff.mpr ⟨hδ'pos, by norm_num⟩
+            have hδ_lt_0_1 : δ < 0.1 := by
+                calc δ ≤ 0.05 := min_le_right (normG z) 5e-2
+                _ < 0.1 := by norm_num
+            have hδ_lower : ∀ y ∈ sigma1, normG y ≥ δ := by
+                intro y hy
+                calc normG y ≥ normG z := hmin hy
+                    _ ≥ δ := min_le_left _ _
+            use δ
+        ·   use 0.05
             constructor
-            ·
-            ·
+            ·   norm_num
+            ·   constructor
+                ·   norm_num
+                ·   intro y hy
+                    exfalso
+                    exact hP ⟨y, hy⟩
+
+
+
+
+
+    -- def smoothAlgebra : Subalgebra ℝ C(sigma1, ℝ) where
+    --     carrier := { f | ContDiff ℝ ⊤ (f : sigma1 → ℝ) }
+
+    --       { carrier := {f | ContDiff ℝ ∞ f}
+    --         mul_mem' := by
+    --         intro f g hf hg
+    --         exact ContDiff.mul hf hg
+    --         add_mem' := by
+    --         intro f g hf hg
+    --         exact ContDiff.add hf hg
+    --         algebraMap_mem' := by
+    --         intro r
+    --         exact contDiff_const }
+
+    --     carrier := {f | ContDiff ℝ ⊤ (f : E → ℝ)}
+    --     add_mem' hf hg c d := by
+
+
+    --     mul_mem' hf hg := ?_
+    --     algebraMap_mem' r := ?_
+    --     zero_mem' := ?_
+    --     one_mem' := ?_
+
+
+
+
+
+
+
+
+
+
+
+        -- by_cases hP : sigma1.Nonempty
+    -- ·
+    -- ·
+    -- have himgnotempty : sigma1.Nonempty := by
+    --     have hsphere : Metric.sphere c ε ⊆ sigma1 := by
+    --         intro x hx
+    --         rw [Set.mem_sep_iff]
+    --         constructor
+    --         ·
+    --         ·
                 -- simp only [mem_sphere_iff_norm] at hx
                 -- linarith
 

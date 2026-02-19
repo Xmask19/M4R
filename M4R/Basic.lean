@@ -3,8 +3,15 @@ import Mathlib.LinearAlgebra.Dual.Lemmas
 import Mathlib.LinearAlgebra.FreeModule.PID
 import Mathlib.Topology.TietzeExtension
 import Mathlib.Analysis.Complex.Tietze
+import Mathlib.LinearAlgebra.Basis.VectorSpace
+import Mathlib.Analysis.InnerProductSpace.Basic
+import Mathlib.Topology.ContinuousMap.StoneWeierstrass
 
 variable {E} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
+
+
+-- theorem stoneweierstrass {X : Type u_1} [TopologicalSpace X] [CompactSpace X] (A : Subalgebra E C(X, E)) (w : A.SeparatesPoints) (f : C(X, ℝ)) (ε : ℝ) (pos : 0 < ε) :
+--         ∃ (g : ↥A), ‖↑g - f‖ < ε := by sorry
 
 
 set_option linter.unnecessarySimpa false
@@ -16,6 +23,7 @@ theorem brouwer_fixed_point (f : (Metric.closedBall (0 : E) 1) → (Metric.close
 theorem restated_IoD (f : E → E)
         (hf_cont : Continuous f) (hf_inj : Function.Injective f)
         : f 0 ∈ interior (f ''(Metric.closedBall 0 1)) := by sorry
+
 
 
 theorem IoD2 (f : E → E)
@@ -33,9 +41,7 @@ theorem IoD2 (f : E → E)
         let fzero' : (f '' Metric.closedBall (0 : E) 1) := ⟨f 0, ⟨0, by simp, rfl⟩⟩
         have := congr($hG fzero')
         conv_lhs at this => simp [fzero']
-        have H : (⟨f 0, ⟨0, by simp, rfl⟩⟩ : f '' Metric.closedBall 0 1) = hBn_equiv ⟨0, by simp⟩ := by
-            apply Subtype.ext
-            rfl
+        have H : (⟨f 0, ⟨0, by simp, rfl⟩⟩ : f '' Metric.closedBall 0 1) = hBn_equiv ⟨0, by simp⟩ := Subtype.ext rfl
         simp [this, hBn_inv_cmap, fzero', H]
     have hStability_of_zero (Gtilde : E → E)
             (hGtilde : Continuous Gtilde) (hy : ∀ y ∈ (f '' (Metric.closedBall 0 1)), ‖G y - Gtilde y‖ ≤ 1 ) : ∃ y ∈ f '' (Metric.closedBall 0 1), Gtilde y = 0 := by
@@ -58,8 +64,8 @@ theorem IoD2 (f : E → E)
         have hBrouwer := brouwer_fixed_point (Set.MapsTo.restrict diff_fun (Metric.closedBall (0:E)  1) (Metric.closedBall 0 1) hMaps_To)
         rcases hBrouwer (ContinuousOn.mapsToRestrict diff_fun_cont_on hMaps_To) with ⟨x, hx⟩
         refine ⟨f x, ⟨⟨x ,⟨(by simpa [Metric.mem_closedBall, dist_zero_right] using mem_closedBall_zero_iff.mp x.2), rfl⟩⟩, ?_⟩⟩
-        · simp [diff_fun, Subtype.ext_iff] at hx
-          simpa [Set.MapsTo.val_restrict_apply, sub_eq_self] using (AddOpposite.op_eq_zero_iff (Gtilde (f ↑x))).mp (congrArg AddOpposite.op hx)
+        simp [diff_fun, Subtype.ext_iff] at hx
+        simpa [Set.MapsTo.val_restrict_apply, sub_eq_self] using (AddOpposite.op_eq_zero_iff (Gtilde (f ↑x))).mp (congrArg AddOpposite.op hx)
     by_contra hnotinterior
     have hGconton := Continuous.continuousOn (ContinuousMap.continuous G) (s := f '' (Metric.closedBall 0 1))
     -- have h8 : IsCompact (Metric.closedBall 0 1) := by exact isCompact_closedBall 0 1
@@ -67,8 +73,7 @@ theorem IoD2 (f : E → E)
     have hGuniformcont := IsCompact.uniformContinuousOn_of_continuous himgcompact hGconton
     rw [Metric.uniformContinuousOn_iff_le] at hGuniformcont
     specialize hGuniformcont 0.1
-    have h0 : 0.1 > (0 : ℝ) := by
-        norm_num
+    have h0 : 0.1 > (0 : ℝ) := by norm_num
     apply hGuniformcont at h0
     rcases h0 with ⟨ε , hε1, hε2⟩
     have h1 : (0:E) ∈ (Metric.closedBall 0 1) := by simp
@@ -79,60 +84,40 @@ theorem IoD2 (f : E → E)
         push_neg at hnotinterior
         specialize hnotinterior (Metric.ball (f 0) ε)
         simp only [Metric.isOpen_ball, Metric.mem_ball, dist_self,
-          forall_const] at hnotinterior
-        rw [imp_not_comm] at hnotinterior
+          forall_const, imp_not_comm] at hnotinterior
         have hnotball := hnotinterior hε1
         rw [Set.not_subset] at hnotball
         rcases hnotball with ⟨c, hc1, hc2⟩
-        use c
-        constructor
-        ·   exact Metric.mem_ball.mp hc1
-        ·   exact (Set.mem_compl_iff (f '' Metric.closedBall 0 1) c).mp hc2
+        exact ⟨c, ⟨Metric.mem_ball.mp hc1, (Set.mem_compl_iff (f '' Metric.closedBall 0 1) c).mp hc2⟩⟩
     let sigma1 : Set E := {y ∈ f '' (Metric.closedBall 0 1) | ‖y - c‖ ≥ ε}
     let sigma2 : Set E := Metric.sphere c ε
     let sigma := sigma1 ∪ sigma2
     -- change this proof to show that sigma1 and sigma2 are each compact as you use compactness of sigma1 later
     have hsigma1compact : IsCompact sigma1 := by
         rw [Metric.isCompact_iff_isClosed_bounded]
-        constructor
-        ·   have hsigma1eq : sigma1 = (f '' Metric.closedBall 0 1) ∩ {y | ‖y - c‖ ≥ ε } := by
-                ext x
-                constructor
-                ·   intro hx
-                    exact
-                        (Set.mem_inter_iff x (f '' Metric.closedBall 0 1) {y | ‖y - c‖ ≥ ε}).mpr
-                        hx
-                ·   rw [Set.mem_inter_iff]
-                    intro ⟨hx1, hx2⟩
+        refine ⟨?_, Bornology.IsBounded.subset (IsCompact.isBounded himgcompact) (Set.sep_subset (f '' Metric.closedBall 0 1) fun x ↦ ‖x - c‖ ≥ ε)⟩
+        have hsigma1eq : sigma1 = (f '' Metric.closedBall 0 1) ∩ {y | ‖y - c‖ ≥ ε } := by
+            ext x
+            exact ⟨fun hx ↦
+                    (Set.mem_inter_iff x (f '' Metric.closedBall 0 1) {y | ‖y - c‖ ≥ ε}).mpr
+                    hx, fun ⟨hx1, hx2⟩ ↦ ⟨(Set.mem_image f (Metric.closedBall 0 1) x).mpr hx1, le_of_eq_of_le rfl hx2⟩⟩
+        have h4 : {y | ‖y - c‖ ≥ ε}ᶜ = Metric.ball c ε := by
+                    ext x
                     constructor
-                    ·   exact (Set.mem_image f (Metric.closedBall 0 1) x).mpr hx1
-                    ·   exact le_of_eq_of_le rfl hx2
-            have h2 : IsClosed {y | ‖y - c‖ ≥ ε } := by
-                have h3 : IsOpen {y | ‖y - c‖ ≥ ε }ᶜ := by
-                    have h4 : {y | ‖y - c‖ ≥ ε}ᶜ = Metric.ball c ε := by
-                        ext x
-                        constructor
-                        ·   intro hx
-                            rw [Set.mem_compl_iff, Set.notMem_setOf_iff, not_le] at hx
-                            exact mem_ball_iff_norm.mpr hx
-                        ·   intro hx
-                            simp only [ge_iff_le, Set.mem_compl_iff, Set.mem_setOf_eq, not_le]
-                            exact mem_ball_iff_norm.mp hx
-                    rw [h4]
-                    exact Metric.isOpen_ball
-                exact { isOpen_compl := h3 }
-            exact IsClosed.and hballimageclosed h2
-        ·   have himgbounded := IsCompact.isBounded himgcompact
-            have hsigma1subset : sigma1 ⊆ (f '' Metric.closedBall 0 1) := by
-                exact Set.sep_subset (f '' Metric.closedBall 0 1) fun x ↦ ‖x - c‖ ≥ ε
-            exact Bornology.IsBounded.subset himgbounded hsigma1subset
+                    ·   intro hx
+                        rw [Set.mem_compl_iff, Set.notMem_setOf_iff, not_le] at hx
+                        exact mem_ball_iff_norm.mpr hx
+                    ·   intro hx
+                        simp only [ge_iff_le, Set.mem_compl_iff, Set.mem_setOf_eq, not_le]
+                        exact mem_ball_iff_norm.mp hx
+        have h3 : IsOpen {y | ‖y - c‖ ≥ ε }ᶜ := by
+                rw [h4]
+                exact Metric.isOpen_ball
+        exact IsClosed.and hballimageclosed ({ isOpen_compl := h3 })
     have hsigmacompact : IsCompact sigma := by
-        apply IsCompact.union
-        ·   assumption
-        ·   rw [Metric.isCompact_iff_isClosed_bounded]
-            constructor
-            ·   exact Metric.isClosed_sphere
-            ·   exact Metric.isBounded_sphere
+        apply IsCompact.union hsigma1compact
+        rw [Metric.isCompact_iff_isClosed_bounded]
+        exact ⟨ Metric.isClosed_sphere, Metric.isBounded_sphere⟩
     have hcnotinsigma : c ∉ sigma := by
         by_contra hcinsigma
         rw [Set.mem_union] at hcinsigma
@@ -149,68 +134,41 @@ theorem IoD2 (f : E → E)
     -- have hPhiimg : Phi '' (f '' Metric.closedBall 0 1) = sigma := by
     --     ext x
     have hPhicont : ContinuousOn Phi (f '' Metric.closedBall 0 1) := by
-        apply ContinuousOn.smul
-        ·   rw [continuousOn_iff_continuous_restrict]
-            apply Continuous.max
-            ·   apply Continuous.div
-                ·   exact continuous_const
-                ·   apply Continuous.norm
-                    apply Continuous.sub
-                    ·   exact continuous_subtype_val
-                    ·   exact continuous_const
-                ·   intro x
-                    simp only [ne_eq, norm_eq_zero]
-                    by_contra hx
-                    rw [sub_eq_zero] at hx
-                    aesop
-            ·   exact continuous_const
-        ·   exact continuousOn_id' (f '' Metric.closedBall 0 1)
+        apply ContinuousOn.smul ?_ (continuousOn_id' (f '' Metric.closedBall 0 1))
+        rw [continuousOn_iff_continuous_restrict]
+        apply Continuous.max ((Continuous.div continuous_const (Continuous.norm (Continuous.sub continuous_subtype_val continuous_const))) ?_) continuous_const
+        intro x
+        simp only [ne_eq, norm_eq_zero]
+        by_contra hx
+        rw [sub_eq_zero] at hx
+        aesop
     have hGavoids : ∀ y ∈ sigma1, G y ≠ (0 : E) := by
         intro y hy
         by_contra hGeq
-        have hfinvinj : Function.Injective hBn_inv_cmap := hBn_equiv.symm.injective
         -- have hGinjective : Function.Injective ((f '' Metric.closedBall 0 1).restrict G)  := by
         have hG_inj_on_image : Set.InjOn G (f '' Metric.closedBall 0 1) := by
             intro x hx y hy h
-            let x' : f '' Metric.closedBall 0 1 := ⟨x, hx⟩
-            let y' : f '' Metric.closedBall 0 1 := ⟨y, hy⟩
-            have hx_eq : G x = hBn_inv_cmap x' := by
-                rw [← ContinuousMap.restrict_apply G (f '' Metric.closedBall 0 1) x', hG]
-            have hy_eq : G y = hBn_inv_cmap y' := by
-                rw [← ContinuousMap.restrict_apply G (f '' Metric.closedBall 0 1) y', hG]
+            have hx_eq : G x = hBn_inv_cmap ⟨x, hx⟩ := by
+                rw [← ContinuousMap.restrict_apply G (f '' Metric.closedBall 0 1) ⟨x, hx⟩, hG]
+            have hy_eq : G y = hBn_inv_cmap ⟨y, hy⟩ := by
+                rw [← ContinuousMap.restrict_apply G (f '' Metric.closedBall 0 1) ⟨y, hy⟩, hG]
             rw [hx_eq, hy_eq] at h
-            have h_eq : x' = y' := hfinvinj h
-            exact congr_arg Subtype.val h_eq
+            exact congr_arg Subtype.val (hBn_equiv.symm.injective h)
         have hyeq : y = f 0 := by
-            have hyin : y ∈ f '' Metric.closedBall 0 1 := by
-                rw [Set.mem_sep_iff] at hy
-                rcases hy with ⟨hy1, hy2⟩
-                exact (Set.mem_image f (Metric.closedBall 0 1) y).mpr hy1
-            have hf0in : f 0 ∈ f '' Metric.closedBall 0 1 := Set.mem_image_of_mem f h1
-            specialize hG_inj_on_image hyin hf0in
-            have heq := Eq.trans hGeq hG0.symm
-            have heq2 : G y = G (f 0) := SetCoe.ext heq
-            apply hG_inj_on_image at heq2
+            have heq : G y = G (f 0) := SetCoe.ext (Eq.trans hGeq hG0.symm)
+            apply hG_inj_on_image ((Set.mem_image f (Metric.closedBall 0 1) y).mpr hy.1) (Set.mem_image_of_mem f h1) at heq
             assumption
         rw [Set.mem_sep_iff, hyeq] at hy
-        rcases hy with ⟨hy1, hy2⟩
         rw [dist_eq_norm, ← norm_neg, neg_sub] at hc1
         linarith
     let normG : E → ℝ := fun y => ‖(G y : E)‖
-    have hgnormconton : ContinuousOn normG (f '' Metric.closedBall 0 1) := by
-        apply ContinuousOn.norm
-        exact continuous_subtype_val.comp_continuousOn hGconton
-    have hgnormconton1 : ContinuousOn normG sigma1 := by
-        apply ContinuousOn.norm
-        have hsigma1subset : sigma1 ⊆ f '' Metric.closedBall 0 1 := Set.sep_subset (f '' Metric.closedBall 0 1) fun x ↦ ‖x - c‖ ≥ ε
-        exact continuous_subtype_val.comp_continuousOn (ContinuousOn.mono hGconton hsigma1subset)
-
+    -- have hgnormconton : ContinuousOn normG (f '' Metric.closedBall 0 1) := ContinuousOn.norm (continuous_subtype_val.comp_continuousOn hGconton)
+    have hgnormconton1 : ContinuousOn normG sigma1 := ContinuousOn.norm (continuous_subtype_val.comp_continuousOn (ContinuousOn.mono hGconton (Set.sep_subset (f '' Metric.closedBall 0 1) fun x ↦ ‖x - c‖ ≥ ε)))
     have hδ : ∃ (δ : ℝ), 0 < δ ∧ δ < 0.1 ∧ ∀ y ∈ sigma1, δ ≤ ‖(G y : E)‖ := by
         by_cases hP : sigma1.Nonempty
         ·   have ⟨z, hz, hmin⟩ := IsCompact.exists_isMinOn hsigma1compact hP hgnormconton1
-            have hδ'pos : 0 < normG z := norm_pos_iff.mpr (hGavoids z hz)
             let δ := min (normG z) (0.05)
-            have hδ_pos : 0 < δ := lt_min_iff.mpr ⟨hδ'pos, by norm_num⟩
+            have hδ_pos : 0 < δ := lt_min_iff.mpr ⟨norm_pos_iff.mpr (hGavoids z hz), by norm_num⟩
             have hδ_lt_0_1 : δ < 0.1 := by
                 calc δ ≤ 0.05 := min_le_right (normG z) 5e-2
                 _ < 0.1 := by norm_num
@@ -219,14 +177,109 @@ theorem IoD2 (f : E → E)
                 calc normG y ≥ normG z := hmin hy
                     _ ≥ δ := min_le_left _ _
             use δ
-        ·   use 0.05
-            constructor
-            ·   norm_num
-            ·   constructor
-                ·   norm_num
-                ·   intro y hy
-                    exfalso
-                    exact hP ⟨y, hy⟩
+        ·   exact ⟨0.05, ⟨by norm_num, ⟨by norm_num, fun y hy ↦ False.elim (hP ⟨y, hy⟩)⟩⟩⟩
+
+    let ι := Module.Basis.ofVectorSpaceIndex ℝ E
+    let l := (Module.Basis.ofVectorSpace ℝ E).equivFun.toContinuousLinearEquiv
+    let coord_E (i : ι) : C(E, ℝ) :=
+        { toFun := fun y => l y i,
+            continuous_toFun := (continuous_apply i).comp l.continuous }
+    let generator_E : Set C(E, ℝ) := Set.range coord_E
+    let A_E : Subalgebra ℝ C(E, ℝ) := Algebra.adjoin ℝ generator_E
+    let coord_sigma1 (i : ι) : C(sigma1, ℝ) :=
+        { toFun := fun sigma1 => l (sigma1) i,
+            continuous_toFun := by
+            apply (continuous_apply i).comp
+            exact l.continuous.comp continuous_subtype_val }
+    let generator_sigma1 : Set C(sigma1, ℝ) := Set.range coord_sigma1
+    let A_X : Subalgebra ℝ C(sigma1, ℝ) := Algebra.adjoin ℝ generator_sigma1
+    have sep_X : A_X.SeparatesPoints := by
+        intro x y hxy
+        let inc : sigma1 → E := Subtype.val
+        have hxyneq: inc x ≠  inc y := Subtype.coe_ne_coe.mpr hxy
+        have : l (inc x) ≠ l (inc y) := (ContinuousLinearEquiv.injective l).ne hxyneq
+        obtain ⟨i, hi⟩ := Function.ne_iff.mp this
+        use coord_sigma1 i
+        constructor
+        ·   apply Set.mem_image_of_mem
+            exact Algebra.subset_adjoin (Set.mem_range_self i)
+        ·   simpa using hi
+
+    let incl : C(Metric.closedBall (0 : E) 1, E) := ⟨Subtype.val, continuous_subtype_val⟩
+    let G_rest : C(sigma1, E) := incl.comp (G.restrict sigma1)
+
+    let G_i (i : ι) : C(sigma1, ℝ) :=
+        { toFun := fun y => (l (G_rest y)) i,
+            continuous_toFun := by
+            apply (continuous_apply i).comp (l.continuous.comp G_rest.continuous) }
+
+    have sw := ContinuousMap.exists_mem_subalgebra_near_continuousMap_of_separatesPoints
+    -- have approx (i : ι) : ∃ p_i : A_X, ‖(p_i : C(sigma1, ℝ)) - G_i‖ < δ :=
+        -- ContinuousMap.exists_mem_subalgebra_near_continuousMap_of_separatesPoints
+        --     A_X sep_X G_i ε' hε'_pos
+
+
+    -- let G_rest : C(sigma1, E) := (ContinuousMap.subtypeVal (Metric.closedBall 0 1)).comp (G.restrict sigma1)
+
+    -- let G_rest : C(sigma1, E) :=
+
+    -- (ContinuousMap.subtypeVal (Metric.closedBall 0 1)).comp (G.restrict sigma1)
+
+    -- let ρ : ι → C(sigma1, ℝ) := fun x =>
+
+            -- use ⟨coord_sigma1 i, Algebra.subset_adjoin (Set.mem_range_self i)⟩
+
+
+        -- use (⟨coord_sigma1 i, Algebra.subset_adjoin (Set.mem_range_self i)⟩ : A_X)
+
+        -- simp only [Set.mem_image, SetLike.mem_coe, DFunLike.coe_fn_eq, exists_eq_right, ne_eq]
+        -- constructor
+        -- ·
+        -- use ⟨coord_sigma1 i, Algebra.subset_adjoin (Set.mem_range_self i)⟩
+
+            -- simpa using (ContinuousLinearEquiv.injective l).ne hxyneq
+        -- Hence they differ at some index i
+        -- obtain ⟨i, hi⟩ := Function.ne_iff.mp this
+        -- The generator coord_X i belongs to A_X
+        -- use ⟨coord_X i, Algebra.subset_adjoin (Set.mem_range_self i)⟩
+        -- simpa using hi
+
+
+    -- let l := (Module.Basis.ofVectorSpace ℝ E).equivFun.toContinuousLinearEquiv
+    -- let b := (stdOrthonormalBasis ℝ E ).repr
+    -- let b := stdOrthonormalBasis ℝ E
+
+    -- let I := Module.Basis.ofVectorSpaceIndex ℝ E
+
+    -- let tocontfun : (MvPolynomial ((Fin (Module.finrank ℝ E))) ℝ) → (E → ℝ) := fun p x ↦ p.eval (fun n ↦ b x n)
+
+    -- have tocontfuncont (p : (MvPolynomial ((Fin (Module.finrank ℝ E))) ℝ)): Continuous (tocontfun p) := by
+    --     exact p.continuous_eval
+
+
+
+
+    -- let subalg : Subalgebra ℝ C(E, ℝ) := {
+    --     carrier := {⟨p.eval, p.continuous_eval⟩ | p ∈ (MvPolynomial I ℝ)}
+
+    -- }
+
+    -- let b := stdOrthonormalBasis ℝ E |>.repr
+
+    -- haveI : CompactSpace (↥sigma1) := isCompact_iff_compactSpace.mp hsigma1compact
+
+    -- let d := finrank ℝ E
+    -- let b := (stdOrthonormalBasis ℝ E)
+
+    -- -- Define coordinate functions using the basis
+    -- let coord : b.toBasis.index → C(↥sigma1, ℝ) :=
+    --     λ i, ⟨λ x : ↥sigma1, ⟪x.val, b i⟫,
+    --             (innerSL ℝ (b i)).continuous.comp continuous_subtype_val⟩
+
+
+
+
+    -- let polysubalgebra := Subalgebra
 
 
 

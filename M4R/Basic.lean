@@ -150,7 +150,8 @@ theorem IoD2 (f : E → E)
       · have h3 : c ∈ Metric.sphere c ε := Metric.mem_sphere.mpr h2
         rw [mem_sphere_iff_norm] at h3
         simp only [sub_self, norm_zero] at h3
-        aesop
+        sorry
+        -- aesop
     let Phi : (E) → (E) := fun y => (max (ε / ‖y - c‖) (1 : ℝ)) • y
     -- have hPhiimg : Phi '' (f '' Metric.closedBall 0 1) = sigma := by
     --     ext x
@@ -162,7 +163,8 @@ theorem IoD2 (f : E → E)
       simp only [ne_eq, norm_eq_zero]
       by_contra hx
       rw [sub_eq_zero] at hx
-      aesop
+      sorry
+      -- aesop
     have hGavoids : ∀ y ∈ sigma1, G y ≠ (0 : (E)) := by
       intro y hy
       by_contra hGeq
@@ -257,6 +259,29 @@ theorem IoD2 (f : E → E)
     -- let norm_l_symm := ‖(l.symm : (ι → ℝ) →L[ℝ] E)‖
     -- let C := (max norm_l norm_l_symm) + 1
     -- have hC : 0 < C := by positivity
+
+    let l := b.toBasis.equivFunL
+
+    have hpos_symm : 0 < ‖(l.symm : ((Fin n) → ℝ) →L[ℝ] E)‖ := by
+        refine lt_of_le_of_ne (norm_nonneg _) ?_
+        intro h_eq
+        have h_zero : (l.symm : (Fin n → ℝ) →L[ℝ] E) = 0 := norm_eq_zero.1 h_eq.symm
+        let w : Fin n → ℝ := fun _ => 1
+        have hw : w ≠ 0 := by
+          haveI : Nonempty (Fin n) := Fin.pos_iff_nonempty.mp h1
+          rcases (show Nonempty (Fin n) by infer_instance) with ⟨i⟩
+          intro h
+          have : w i = 0 := congr_fun h i
+          linarith
+        have : (l.symm : (Fin n → ℝ) →L[ℝ] E) w = 0 := by rw [h_zero]; rfl
+        have : l.symm w = 0 := this
+        have : l (l.symm w) = l 0 := congrArg l this
+        rw [l.apply_symm_apply w, map_zero] at this
+        exact hw this
+
+    let C := ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖
+
+
     rcases hδ with ⟨δ, hδ1, hδ2⟩
     let ε' := δ / n
     have hd : 0 ≤ n := Nat.zero_le n
@@ -288,7 +313,12 @@ theorem IoD2 (f : E → E)
         rw [ContinuousMap.norm_lt_iff _ hε'] at this
         exact this y
 
-      let l := b.toBasis.equivFunL
+      have hnorm_v : ‖v‖ < ε' := by
+        rw [pi_norm_lt_iff hε']
+        intro i
+        exact hv i
+
+
 
 
       have hP_eq : P y - G_rest y = l.symm v := by
@@ -301,7 +331,7 @@ theorem IoD2 (f : E → E)
         rfl
 
 
-      rw [hP_eq]
+      -- rw [hP_eq]
       -- rw?
 
 
@@ -326,42 +356,88 @@ theorem IoD2 (f : E → E)
       --   have hcoor : (P y).ofLp i = (p_i i : C(sigma1, ℝ)) y := by dsimp [P]
       --   rw [hcoor]
 
-      have hsq (i : Fin n) : (v i)^2 < ε'^2 := by
-        rw [sq_lt_sq, abs_of_pos hε']
-        exact RCLike.ofReal_lt_ofReal.mp (hv i)
-      have h_eq : Fintype.card (Fin n) = n := Fintype.card_fin n
+      -- have hsq (i : Fin n) : (v i)^2 < ε'^2 := by
+      --   rw [sq_lt_sq, abs_of_pos hε']
+      --   exact RCLike.ofReal_lt_ofReal.mp (hv i)
+      -- have h_eq : Fintype.card (Fin n) = n := Fintype.card_fin n
 
-      haveI : Nonempty (Fin n) := Fin.pos_iff_nonempty.mp h1
-      have univ_nonempty : (Finset.univ : Finset (Fin n)).Nonempty := Finset.univ_nonempty
-      have hsum : ∑ i, v i ^ 2 < ∑ (i : Fin n), ε' ^ 2 := by
+      -- haveI : Nonempty (Fin n) := Fin.pos_iff_nonempty.mp h1
+      -- have univ_nonempty : (Finset.univ : Finset (Fin n)).Nonempty := Finset.univ_nonempty
+      -- have hsum : ∑ i, v i ^ 2 < ∑ (i : Fin n), ε' ^ 2 := by
 
-        apply Finset.sum_lt_sum_of_nonempty univ_nonempty
-        intro i _
-        exact hsq i
+      --   apply Finset.sum_lt_sum_of_nonempty univ_nonempty
+      --   intro i _
+      --   exact hsq i
 
-      have hRHS : Finset.sum (Finset.univ : Finset (Fin n)) (fun _ => ε' ^ 2) = n * ε' ^ 2 := by
-        rw [Finset.sum_const, Finset.card_univ]
-        simp
-
-
-      have hpos_symm : 0 < ‖l.symm‖ := by
-        refine lt_of_le_of_ne (norm_nonneg _) ?_
-        intro h_eq  -- assume ‖l.symm‖ = 0
-        have h_zero : l.symm = 0 := norm_eq_zero.1 h_eq
-        -- Choose a non‑zero vector in the domain, e.g., the constant 1 function
-        let w : ι → ℝ := fun _ => 1
-        have hw : w ≠ 0 := by simp
-        have : l.symm w = 0 := by rw [h_zero, ContinuousLinearMap.zero_apply]
-        -- Apply l to both sides
-        have : l (l.symm w) = 0 := congrArg l this
-        rw [l.apply_symm_apply w] at this
-        exact hw this  -- contradiction: w = 0
+      -- have hRHS : Finset.sum (Finset.univ : Finset (Fin n)) (fun _ => ε' ^ 2) = n * ε' ^ 2 := by
+      --   rw [Finset.sum_const, Finset.card_univ]
+      --   simp
 
 
-      have hnorm_v : ‖v‖ < ε' := by
-        rw [pi_norm_lt_iff hε']
-        intro i
-        exact hv i
+
+      rw [hP_eq]
+
+      -- Step 2: operator norm inequality
+      have step2 : ‖l.symm v‖ ≤ ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖ * ‖v‖ :=
+        ContinuousLinearMap.le_opNorm_of_le (l.symm : (Fin n → ℝ) →L[ℝ] E) (le_refl ‖v‖)
+
+
+      have step3 : ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖ * ‖v‖ <
+              ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖ * ε' := mul_lt_mul_of_pos_left hnorm_v hpos_symm
+
+      have step4 : ‖l.symm v‖ < ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖ * ε' := lt_of_le_of_lt step2 step3
+
+
+
+      -- have step5 : ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖ * ε' = δ := by
+      --   unfold ε'
+
+
+        -- rw [div_mul_cancel _ (ne_of_gt hpos_symm)]
+
+      -- have step2 : ‖l.symm v‖ ≤ ‖(l.symm : (Fin n → ℝ) →L[ℝ]
+
+
+        -- rw? at h_zero
+
+        -- have : l.symm w = 0 := by
+          -- simp?
+          -- rw [h_zero]
+          -- rfl
+
+        -- have h_symm_w_zero : l.symm w = 0 := by
+        --   have := ContinuousLinearMap.congr_fun h_zero w
+        --   rwa [ContinuousLinearMap.zero_apply] at this
+
+
+        -- have : l.symm w = 0 := by
+        --   have := congr_fun h_zero w
+        --   rwa [ContinuousLinearMap.zero_apply] at this
+        -- have : (l.symm : (Fin n → ℝ) →L[ℝ] E) w = 0 := by rw [h_zero, ContinuousLinearMap.zero_apply]
+        -- have : l ((l.symm : (Fin n → ℝ) →L[ℝ] E) w) = l 0 := congrArg l this
+        -- rw [l.apply_symm_apply w] at this
+
+
+
+
+      -- have hpos_symm : 0 < ‖l.symm‖ := by
+      --   refine lt_of_le_of_ne (norm_nonneg _) ?_
+      --   intro h_eq  -- assume ‖l.symm‖ = 0
+      --   have h_zero : l.symm = 0 := norm_eq_zero.1 h_eq
+      --   -- Choose a non‑zero vector in the domain, e.g., the constant 1 function
+      --   let w : ι → ℝ := fun _ => 1
+      --   have hw : w ≠ 0 := by simp
+      --   have : l.symm w = 0 := by rw [h_zero, ContinuousLinearMap.zero_apply]
+      --   -- Apply l to both sides
+      --   have : l (l.symm w) = 0 := congrArg l this
+      --   rw [l.apply_symm_apply w] at this
+      --   exact hw this  -- contradiction: w = 0
+
+
+      -- have hnorm_v : ‖v‖ < ε' := by
+      --   rw [pi_norm_lt_iff hε']
+      --   intro i
+      --   exact hv i
 
 
       -- let ε'nn : ℝ≥0 := ⟨ε', le_of_lt hε'⟩

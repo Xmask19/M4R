@@ -283,15 +283,27 @@ theorem IoD2 (f : E → E)
 
 
     rcases hδ with ⟨δ, hδ1, hδ2⟩
-    let ε' := δ / n
-    have hd : 0 ≤ n := Nat.zero_le n
+    let ε' := δ / (2 *C)
     have hε' : 0 < ε' := by
       apply div_pos
       · exact RCLike.ofReal_pos.mp hδ1
-      · apply lt_iff_le_and_ne.mpr
-        refine ⟨Nat.cast_nonneg' n, ?_⟩
-        rw [← Nat.cast_ne_zero (R := ℝ )] at hn
-        exact hn.symm
+      · apply mul_pos
+        · exact zero_lt_two
+        · exact hpos_symm
+
+
+
+
+
+    -- let ε' := δ / n
+    -- have hd : 0 ≤ n := Nat.zero_le n
+    -- have hε' : 0 < ε' := by
+    --   apply div_pos
+    --   · exact RCLike.ofReal_pos.mp hδ1
+    --   · apply lt_iff_le_and_ne.mpr
+    --     refine ⟨Nat.cast_nonneg' n, ?_⟩
+    --     rw [← Nat.cast_ne_zero (R := ℝ )] at hn
+    --     exact hn.symm
 
     -- div_pos hδ1 (mul_pos  (lt_of_le_of_ne hd (Ne.symm hdim_zero)))
     have approx (i : (Fin n)) : ∃ p_i : A_sigma, ‖(p_i : C(sigma, ℝ)) - G_i i‖ < ε' :=
@@ -306,35 +318,24 @@ theorem IoD2 (f : E → E)
 
     have hP_bound : ∀ y , ‖P y - G_rest y‖ < δ := by
       intro y
-
       let v : Fin n → ℝ := fun i => (p_i i : C(sigma, ℝ)) y - (b.toBasis.equivFunL (G_rest y)) i
       have hv i : |v i| < ε' := by
         have := hp_i i
         rw [ContinuousMap.norm_lt_iff _ hε'] at this
         exact this y
-
       have hnorm_v : ‖v‖ < ε' := by
         rw [pi_norm_lt_iff hε']
         intro i
         exact hv i
-
-
-
-
       have hP_eq : P y - G_rest y = l.symm v := by
         dsimp [P, v]
         have h_repr_eq : b.toBasis.repr (G_rest y) = l (G_rest y) := rfl
         have hG : G_rest y = l.symm (l (G_rest y)) := (l.symm_apply_apply (G_rest y)).symm
         have h_simp : l (l.symm (l (G_rest y))) = l (G_rest y) := by rw [l.symm_apply_apply (G_rest y)]
         rw [h_repr_eq, hG, ← l.symm.map_sub, h_simp]
-
         rfl
-
-
       -- rw [hP_eq]
       -- rw?
-
-
       -- have hG : G_rest y = l.symm (l (G_rest y)) := (l.symm_apply_apply (G_rest y)).symm
       -- rw [hG]
         -- rw [← b.toBasis.equivFunL.symm.map_sub]
@@ -373,8 +374,6 @@ theorem IoD2 (f : E → E)
       --   rw [Finset.sum_const, Finset.card_univ]
       --   simp
 
-
-
       rw [hP_eq]
 
       -- Step 2: operator norm inequality
@@ -386,6 +385,19 @@ theorem IoD2 (f : E → E)
               ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖ * ε' := mul_lt_mul_of_pos_left hnorm_v hpos_symm
 
       have step4 : ‖l.symm v‖ < ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖ * ε' := lt_of_le_of_lt step2 step3
+      calc
+        ‖l.symm v‖ < C * ε' := step4
+        _ = δ / 2 := by
+          unfold ε'
+          field_simp
+          rw [div_self_eq_one₀]
+          exact Ne.symm (ne_of_lt hpos_symm)
+        _ < δ := half_lt_self hδ1
+
+
+
+
+
 
 
 

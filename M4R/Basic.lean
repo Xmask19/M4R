@@ -250,16 +250,6 @@ theorem IoD2 (f : E → E)
     haveI : CompactSpace sigma := isCompact_iff_compactSpace.mp hsigmacompact
 
 
-    -- have h_card_ne_zero : Fintype.card (Fin n) ≠ 0 := Ne.symm (Ne.intro fun a ↦ hdim_zero (Eq.symm a))
-    -- have n_ne_zero : n ≠ 0 := by rwa [Fintype.card_fin n] at h_card_ne_zero
-    -- have n_pos : 0 < n := Nat.pos_of_ne_zero n_ne_zero
-    -- have : (n : ℝ) ≠ 0 := by exact_mod_cast n_ne_zero
-
-    -- let norm_l := ‖(l : E →L[ℝ] (ι → ℝ))‖
-    -- let norm_l_symm := ‖(l.symm : (ι → ℝ) →L[ℝ] E)‖
-    -- let C := (max norm_l norm_l_symm) + 1
-    -- have hC : 0 < C := by positivity
-
     let l := b.toBasis.equivFunL
 
     have hpos_symm : 0 < ‖(l.symm : ((Fin n) → ℝ) →L[ℝ] E)‖ := by
@@ -283,39 +273,21 @@ theorem IoD2 (f : E → E)
 
 
     rcases hδ with ⟨δ, hδ1, hδ2⟩
-    let ε' := δ / (2 *C)
+    let ε' := δ / (2 * C)
     have hε' : 0 < ε' := by
       apply div_pos
       · exact RCLike.ofReal_pos.mp hδ1
       · apply mul_pos
         · exact zero_lt_two
         · exact hpos_symm
-
-
-
-
-
-    -- let ε' := δ / n
-    -- have hd : 0 ≤ n := Nat.zero_le n
-    -- have hε' : 0 < ε' := by
-    --   apply div_pos
-    --   · exact RCLike.ofReal_pos.mp hδ1
-    --   · apply lt_iff_le_and_ne.mpr
-    --     refine ⟨Nat.cast_nonneg' n, ?_⟩
-    --     rw [← Nat.cast_ne_zero (R := ℝ )] at hn
-    --     exact hn.symm
-
-    -- div_pos hδ1 (mul_pos  (lt_of_le_of_ne hd (Ne.symm hdim_zero)))
     have approx (i : (Fin n)) : ∃ p_i : A_sigma, ‖(p_i : C(sigma, ℝ)) - G_i i‖ < ε' :=
       ContinuousMap.exists_mem_subalgebra_near_continuousMap_of_separatesPoints
         A_sigma sep_sigma (G_i i) ε' hε'
     choose p_i hp_i using approx
 
-
     let P : C(sigma, E) :=
       { toFun := fun y => b.toBasis.equivFunL.symm (fun i => (p_i i : C(sigma, ℝ)) y),
         continuous_toFun := by fun_prop}
-
     have hP_bound : ∀ y , ‖P y - G_rest y‖ < δ := by
       intro y
       let v : Fin n → ℝ := fun i => (p_i i : C(sigma, ℝ)) y - (b.toBasis.equivFunL (G_rest y)) i
@@ -334,57 +306,13 @@ theorem IoD2 (f : E → E)
         have h_simp : l (l.symm (l (G_rest y))) = l (G_rest y) := by rw [l.symm_apply_apply (G_rest y)]
         rw [h_repr_eq, hG, ← l.symm.map_sub, h_simp]
         rfl
-      -- rw [hP_eq]
-      -- rw?
-      -- have hG : G_rest y = l.symm (l (G_rest y)) := (l.symm_apply_apply (G_rest y)).symm
-      -- rw [hG]
-        -- rw [← b.toBasis.equivFunL.symm.map_sub]
-        -- congr
-
-      -- have hnorm_v : ‖v‖ ^ 2 = ∑ i, (v i) ^ 2 := by rw [EuclideanSpace.norm_sq_eq_sum]
-
-      -- have hnorm : ‖P y - G_rest y‖ ^ 2 = ∑ i, (v i) ^ 2 := by
-      --   rw [← b.toBasis.equivFunL.norm_map, ← b.toBasis.equivFunL.map_sub]
-      --   rw [EuclideanSpace.norm_sq_eq_sum]
-
-      -- have hnorm : ‖P y - G_rest y‖ ^ 2 =  (∑ i, ((p_i i : C(sigma, ℝ)) y - (b.toBasis.equivFunL (G_rest y)) i)^2) := by
-      --   rw [EuclideanSpace.norm_sq_eq]
-      --   apply congr_arg (Finset.sum Finset.univ)
-      --   funext i
-      --   have : (P y - G_rest y).ofLp i = (P y).ofLp i - (G_rest y).ofLp i := by rfl
-      --   rw [this]
-      --   simp only [Real.norm_eq_abs, sq_abs]
-      --   have hcoor : (P y).ofLp i = (p_i i : C(sigma1, ℝ)) y := by dsimp [P]
-      --   rw [hcoor]
-
-      -- have hsq (i : Fin n) : (v i)^2 < ε'^2 := by
-      --   rw [sq_lt_sq, abs_of_pos hε']
-      --   exact RCLike.ofReal_lt_ofReal.mp (hv i)
-      -- have h_eq : Fintype.card (Fin n) = n := Fintype.card_fin n
-
-      -- haveI : Nonempty (Fin n) := Fin.pos_iff_nonempty.mp h1
-      -- have univ_nonempty : (Finset.univ : Finset (Fin n)).Nonempty := Finset.univ_nonempty
-      -- have hsum : ∑ i, v i ^ 2 < ∑ (i : Fin n), ε' ^ 2 := by
-
-      --   apply Finset.sum_lt_sum_of_nonempty univ_nonempty
-      --   intro i _
-      --   exact hsq i
-
-      -- have hRHS : Finset.sum (Finset.univ : Finset (Fin n)) (fun _ => ε' ^ 2) = n * ε' ^ 2 := by
-      --   rw [Finset.sum_const, Finset.card_univ]
-      --   simp
-
       rw [hP_eq]
-
-      -- Step 2: operator norm inequality
       have step2 : ‖l.symm v‖ ≤ ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖ * ‖v‖ :=
         ContinuousLinearMap.le_opNorm_of_le (l.symm : (Fin n → ℝ) →L[ℝ] E) (le_refl ‖v‖)
-
-
       have step3 : ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖ * ‖v‖ <
               ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖ * ε' := mul_lt_mul_of_pos_left hnorm_v hpos_symm
-
       have step4 : ‖l.symm v‖ < ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖ * ε' := lt_of_le_of_lt step2 step3
+
       calc
         ‖l.symm v‖ < C * ε' := step4
         _ = δ / 2 := by
@@ -394,273 +322,15 @@ theorem IoD2 (f : E → E)
           exact Ne.symm (ne_of_lt hpos_symm)
         _ < δ := half_lt_self hδ1
 
+    letI : MeasurableSpace E := borel E
+    haveI : BorelSpace E := ⟨rfl⟩
+    have hvolume := MeasureTheory.Measure.addHaar_sphere_of_ne_zero volume c (ne_of_gt hε1)
 
+    -- have hP : DifferentiableOn ℝ P (Metric.sphere c ε) :=
 
 
 
 
-
-
-      -- have step5 : ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖ * ε' = δ := by
-      --   unfold ε'
-
-
-        -- rw [div_mul_cancel _ (ne_of_gt hpos_symm)]
-
-      -- have step2 : ‖l.symm v‖ ≤ ‖(l.symm : (Fin n → ℝ) →L[ℝ]
-
-
-        -- rw? at h_zero
-
-        -- have : l.symm w = 0 := by
-          -- simp?
-          -- rw [h_zero]
-          -- rfl
-
-        -- have h_symm_w_zero : l.symm w = 0 := by
-        --   have := ContinuousLinearMap.congr_fun h_zero w
-        --   rwa [ContinuousLinearMap.zero_apply] at this
-
-
-        -- have : l.symm w = 0 := by
-        --   have := congr_fun h_zero w
-        --   rwa [ContinuousLinearMap.zero_apply] at this
-        -- have : (l.symm : (Fin n → ℝ) →L[ℝ] E) w = 0 := by rw [h_zero, ContinuousLinearMap.zero_apply]
-        -- have : l ((l.symm : (Fin n → ℝ) →L[ℝ] E) w) = l 0 := congrArg l this
-        -- rw [l.apply_symm_apply w] at this
-
-
-
-
-      -- have hpos_symm : 0 < ‖l.symm‖ := by
-      --   refine lt_of_le_of_ne (norm_nonneg _) ?_
-      --   intro h_eq  -- assume ‖l.symm‖ = 0
-      --   have h_zero : l.symm = 0 := norm_eq_zero.1 h_eq
-      --   -- Choose a non‑zero vector in the domain, e.g., the constant 1 function
-      --   let w : ι → ℝ := fun _ => 1
-      --   have hw : w ≠ 0 := by simp
-      --   have : l.symm w = 0 := by rw [h_zero, ContinuousLinearMap.zero_apply]
-      --   -- Apply l to both sides
-      --   have : l (l.symm w) = 0 := congrArg l this
-      --   rw [l.apply_symm_apply w] at this
-      --   exact hw this  -- contradiction: w = 0
-
-
-      -- have hnorm_v : ‖v‖ < ε' := by
-      --   rw [pi_norm_lt_iff hε']
-      --   intro i
-      --   exact hv i
-
-
-      -- let ε'nn : ℝ≥0 := ⟨ε', le_of_lt hε'⟩
-      -- have hnorm_v : ‖v‖ < ε' := by
-      --   rw [Pi.norm_def]  -- ‖v‖ = (Finset.univ.sup fun i ↦ ‖v i‖₊).toReal
-      --   rw [← NNReal.coe_lt_coe]  -- turn (toReal ... < ε') into (sup < ε'nn)
-      --   apply Finset.sup_lt_iff
-      --   · exact univ_nonempty
-      --   · intro i _
-      --     have := hv i
-      --     rwa [← NNReal.coe_lt_coe] at this
-
-
-      -- have hnorm_v : ‖v‖ < ε' := by
-      --   rw [Pi.norm_def]
-      --   apply Finset.sup_lt_iff (Finset.univ_nonempty)
-      --   intro i _
-      --   exact hv i
-
-      -- have hnorm : ‖l.symm v‖ ≤ ‖l.symm‖ * ‖v‖_sup := ContinuousLinearMap.le_op_norm _ _
-
-      -- rw [pi_norm_lt_iff hδ1]
-
-      -- have hsup : ‖v‖ < ε' := by
-      --   rw [Pi.norm_def]
-      --   apply Finset.sup_lt_iff (Finset.univ_nonempty)
-      --   intro i _
-      --   exact hv i
-      -- have hnorm_v : ‖v‖ < Real.sqrt n * ε' := by
-      --   rw [EuclideanSpace.norm_eq]
-      --   rw [← Real.sqrt_lt_sqrt_iff (norm_nonneg _) (by positivity)]
-      --   rw [Real.sqrt_mul (le_of_lt (by positivity)) (sq_nonneg ε')]
-      --   exact hsum
-
-      -- rw [hnorm] at hsum
-
-    -- have hspherevolume : volume (Metric.sphere c ε) = 0 := addHaar_sphere_of_ne_zero volume c (ne_of_gt hε1)
-
-
-      -- let n : ℝ := Fintype.card (Fin n)
-      -- have hRHS : ∑ i in Finset.univ, ε' ^ 2 = n * ε' ^ 2 := by
-      -- rw [Finset.sum_const, Finset.card_univ, Nat.cast_inj]
-
-      -- have n_pos : 0 < n := Nat.pos_of_ne_zero h_card_ne_zero
-      -- haveI : Nonempty (Fin n) := Fin.pos_iff_nonempty.mp h_card_ne_zero
-
-
-        -- intro h_card_zero
-        -- have hd_zero : d = 0 := calc
-        --     d = ↑(Fintype.card (Fin n)) := rfl
-        --     _ = ↑0 := by rw [h_card_zero]
-        --     _ = 0 := Nat.cast_zero
-        -- exact hdim_zero hd_zero
-
-      -- have h_card_ne_zero : Fintype.card (Fin n) ≠ 0 := by
-      --     intro h_card_zero
-      --     have : d = 0 := by rw [d, h_card_zero, Nat.cast_zero]
-      --     exact hdim_zero this
-        -- have h : n = 0 := Nat.eq_zero_of_not_pos hdim_zero  -- careful: hdim_zero is ¬d=0
-        -- rw [d, h, Nat.cast_zero]
-
-      -- haveI : Nonempty (Fin n) := by
-      --     -- Prove that n ≠ 0 (this should be from your context, e.g., because you have already handled the zero‑dimensional case separately)
-      --     have hn_pos : 0 < n := by
-
-      -- have univ_nonempty : (Finset.univ : Finset (Fin n)).Nonempty := Finset.univ_nonempty
-      -- have hsum : ∑ i in Finset.univ, (v i)^2 < ∑ i in Finset.univ, ε'^2 :=
-      -- Finset.sum_lt_sum_of_nonempty univ_nonempty (fun i _ => hsq i)
-        -- apply?
-
-        -- exact ⟨abs_nonneg (v i), hv i⟩
-
-
-
-      -- have hsq (i : Fin n) : ((p_i i : C(sigma1, ℝ)) y - (G_rest y).ofLp i)^2 < ε'^2 := by
-      --     have h := hv i y   -- hv i : |...| < ε'
-      --     rw [← sq_abs]
-      --     exact pow_lt_pow_left (abs_lt.mp h).1 (norm_nonneg _) two_pos
-
-      -- have hsum :
-
-      -- have hsum : ∑ i in Finset.univ, ((p_i i : C(sigma1, ℝ)) y - (G_rest y).ofLp i)^2 < ∑ i, ε'^2 := by
-      --     refine Finset.sum_lt_sum (fun i _ => sq_nonneg _) (fun i _ => ?_)
-
-        -- simp?
-        -- rw [sq_abs]
-
-        -- refine Finset.sum_congr rfl fun i _ => ?_
-        -- rw [Pi.sub_apply]
-        -- simp only [PiLp.sub_apply, Real.norm_eq_abs, sq_abs]
-
-
-      --     rw [EuclideanSpace.norm_eq]
-      --     simp only [PiLp.sub_apply, Real.norm_eq_abs, sq_abs]
-      --     congr
-        -- simp only [PiLp.sub_apply, Real.norm_eq_abs, sq_abs]
-        -- have h1 : (∑ x, ((P y).ofLp x - (G_rest y).ofLp x) ^ 2)
-        -- refine Finset.sum_congr rfl fun i _ => ?_
-
-        -- apply congr_arg (Finset.sum Finset.univ)
-        -- refine Finset.sum_congr rfl (fun i _ => ?_)
-        -- congr
-        -- ext i
-        -- -- congr
-    --     intro y
-    --     let dvec : ι → ℝ := fun i => (p_i i : C(sigma1, ℝ)) y - (l (G_rest y)) i
-
-    --     haveI : Nonempty ι := not_isEmpty_iff.1 $ λ h_isEmpty => hdim_zero $ (Nat.cast_eq_zero (R := ℝ)).mpr $ Fintype.card_eq_zero_iff.2 h_isEmpty
-    --     have univ_nonempty : (Finset.univ : Finset ι).Nonempty := Finset.univ_nonempty
-
-    --     have h_coord (i : ι) : |dvec i| < ε' := by
-    --         have := hp_i i
-    --         rw [ContinuousMap.norm_lt_iff _ hε'] at this
-    --         exact this y
-
-    --     let ε'nn : ℝ≥0 := ⟨ε', le_of_lt hε'⟩
-    --     have h_coord_nn i : ‖dvec i‖₊ < ε'nn := by
-    --         rw [← NNReal.coe_lt_coe]
-    --         exact h_coord i
-
-    --     have h_sup : (Finset.univ.sup fun i => ‖dvec i‖₊) < ε'nn := by
-    --         rw [Finset.sup_lt_iff]
-    --         · intro i _
-    --             exact h_coord_nn i
-    --         · exact coe_lt_coe.mp hε'
-
-    --     have h_norm_eq : ‖dvec‖ = (Finset.univ.sup fun i => ‖dvec i‖₊).toReal := by rw [Pi.norm_def]
-    --     have h_norm_dvec : ‖dvec‖ < ε' := by
-    --         rw [h_norm_eq]
-    --         exact gt_iff_lt.mp h_sup
-
-    --     have h_eq : P y - G_rest y = l.symm dvec := by
-    --         dsimp [P]
-    --         have h : G_rest y = l.symm (l (G_rest y)) := (l.symm_apply_apply (G_rest y)).symm
-    --         rw [h]
-    --         rw [← l.symm.map_sub]
-    --         rfl
-
-
-    --     have h_pos_norm : 0 < norm_l_symm := by
-    --         refine lt_of_le_of_ne (norm_nonneg _) ?_
-    --         intro h_eq
-
-    --         have h_l_symm_zero : (l.symm : (ι → ℝ) →L[ℝ] E) = 0 := by
-    --             rw [norm_l_symm] at h_eq
-    --             exact (norm_eq_zero.mp h_eq)
-        -- simp [norm_l_symm] at h_eq
-        -- have h_l_symm_zero : (l.symm : (ι → ℝ) →L[ℝ] E) = 0 := (norm_eq_zero.1 h_eq)
-        -- have h_pointwise : ∀ x, l.symm x = 0 := by
-        --     intro x
-        --     exact (ContinuousLinearMap.ext_iff (f := l.symm) (g := 0)).mp h_l_symm_zero x
-
-
-
-        -- have h_l_symm_zero : (l.symm : (ι → ℝ) →L[ℝ] E) = 0 := (norm_eq_zero.1 h_eq.symm)
-
-
-        -- have h_comp : (l : E →L[ℝ] (ι → ℝ)) ∘L (l.symm : (ι → ℝ) →L[ℝ] E) = ContinuousLinearMap.id ℝ (ι → ℝ) :=
-        --     ContinuousLinearEquiv.self_comp_symm l
-        -- have : ContinuousLinearMap.id ℝ (ι → ℝ) = (l : E →L[ℝ] (ι → ℝ)) ∘L (l.symm : (ι → ℝ) →L[ℝ] E) :=
-        --         by rw [← ContinuousLinearEquiv.coe_comp_coe_symm]; rfl
-
-        -- refine ⟨fun i _ => h_coord_nn i, fun heq => ?_⟩
-        -- exact ⟨univ_nonempty, fun i _ => h_coord_nn i⟩
-      -- have h_sup : (Finset.univ.sup fun i => ‖dvec i‖₊) < ε'nn := by
-      --     apply (Finset.sup_lt_iff univ_nonempty).mpr
-      --     intro i _
-      --     exact h_coord_nn i
-
-      -- have h_sup : (Finset.univ.sup fun i => ‖dvec i‖₊) < ε'nn := by
-      --     rw [Finset.sup_lt_iff]
-      --     ·
-      --     ·
-        -- constructor
-        -- apply Finset.sup_lt_iff
-        -- · exact univ_nonempty
-        -- · intro i _
-        --     exact h_coord_nn i
-
-
-      -- let sup_norm := Finset.univ.sup' univ_nonempty (fun i => |dvec i|)
-      -- have hsup : sup_norm < ε' := (Finset.sup'_lt_iff univ_nonempty).mpr (fun i _ => h_coord i)
-      -- have hnorm_eq : ‖dvec‖ = sup_norm := by
-      --     rw [Pi.norm_def, sup_norm]
-
-
-
-      -- have hsup_real : Finset.univ.max' (fun i => ‖dvec i‖) (Finset.univ_nonempty) < ε' := by
-      --     apply Finset.max_lt
-      --     intro i _
-      --     exact hd i  -- hd i : |dvec i| < ε', and note that |dvec i| = ‖dvec i‖
-
-      -- let ε'_nn : ℝ≥0 := ⟨ε', le_of_lt hε'⟩
-      -- have hd i : |dvec i| < ε' := by
-      --     have := hp_i i
-      --     rw [ContinuousMap.norm_lt_iff _ hε'] at this
-      --     exact this y
-      -- have hsup : Finset.univ.sup (fun i => ‖dvec i‖₊) < ε'nn := by
-      --     apply Finset.sup_lt_iff
-      --     · exact Finset.univ.nonempty
-      --     · intro i _
-      --         exact hd_nn i
-
-
-      -- have hsup : ‖dvec‖ < ε' := by
-      --     rw [Pi.norm_def]
-      --     let ε'nn : ℝ≥0 := ⟨ε', hε'.le⟩
-        -- apply Finset.sup_lt_iff (by linarith [hε'])
-        -- intro i _
-        -- exact hd i
-    --     have h1 : ‖P y - G_rest y‖^2 = ∑ i, ((p_i i : C(sigma1, ℝ)) y - (l (G_rest y)) i)^2 := by
 
 
 

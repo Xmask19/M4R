@@ -15,6 +15,7 @@ import Mathlib.MeasureTheory.Measure.Lebesgue.EqHaar
 import Mathlib.MeasureTheory.Measure.Haar.InnerProductSpace
 import Mathlib.MeasureTheory.Measure.Lebesgue.EqHaar
 import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
+import Mathlib.MeasureTheory.Function.Jacobian
 -- import Mathlib.MeasureTheory.MeasureSpace
 -- import Mathlib.MeasureTheory.Constructions.PiLp
 variable {E} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
@@ -208,6 +209,10 @@ theorem IoD2 (f : E → E)
     have h1  : 0 < n := (Module.finrank_pos_iff_of_free ℝ E).mpr hnontrivial
 
     have hn : n ≠ 0 := ne_zero_of_lt h1
+
+
+    have hb := OrthonormalBasis.norm_eq_one b
+    -- have hb2 : ∀ i ∈ (Fin n) ‖b.toBasis i‖ =1 :=
     -- have : Fintype ι := by sorry
 
     -- let coord (i : ι): C(E, ℝ) :=
@@ -220,17 +225,53 @@ theorem IoD2 (f : E → E)
     -- let generator_E : Set C(E, ℝ) := Set.range coord
     -- let A_E : Subalgebra ℝ C(E, ℝ) := Algebra.adjoin ℝ generator_E
 
-    let coord_sigma (i : Fin n) : C(sigma, ℝ) :=
+
+
+    -- have hcoord_sigma :  ∀ i : (Fin n), Differentiable ℝ (coord_sigma i) := by
+    --   intro i
+    --   refine IsBoundedLinearMap.differentiable ?_
+    --   refine { toIsLinearMap := ?_, bound := ?_ }
+    --   · sorry
+    --   ·
+
+    --     use 1
+    --     constructor
+    --     · linarith
+    --     · intro x
+    --       simp only [Real.norm_eq_abs, one_mul]
+    --       unfold coord_sigma
+    --       rw [ContinuousMap.coe_mk]
+
+    let coord_sigma (i : Fin n) : C(E, ℝ) :=
       { toFun := fun x => b.toBasis.equivFunL x i
         continuous_toFun := by fun_prop }
+    have hcoord_diff (i : Fin n) : Differentiable ℝ (coord_sigma i) := by
+      let proj_i : (Fin n → ℝ) →L[ℝ] ℝ := ContinuousLinearMap.proj i
+      exact (proj_i.comp (b.toBasis.equivFunL : E →L[ℝ] (Fin n → ℝ))).differentiable
 
-    let generator_sigma : Set C(sigma, ℝ) := Set.range coord_sigma
-    let A_sigma : Subalgebra ℝ C(sigma, ℝ) := Algebra.adjoin ℝ generator_sigma
+
+    let generator_sigma : Set C(E, ℝ) := Set.range coord_sigma
+
+    have hgen_diff : ∀ f ∈ generator_sigma, Differentiable ℝ f := by
+      rintro _ ⟨i, rfl⟩
+      exact hcoord_diff i
+
+    let A_sigma : Subalgebra ℝ C(E, ℝ) := Algebra.adjoin ℝ generator_sigma
+
+    have hA_diff : ∀ f ∈ A_sigma, Differentiable ℝ f := by
+      let D : Subalgebra ℝ C(E, ℝ) :=
+        { carrier := {f | Differentiable ℝ f}
+          zero_mem' := differentiable_const 0
+          one_mem' := differentiable_const 1
+          add_mem' := fun hf hg => hf.add hg
+          mul_mem' := fun hf hg => hf.mul hg
+          algebraMap_mem' := fun r => differentiable_const r }
+      have : generator_sigma ⊆ D := hgen_diff
+      have : A_sigma ≤ D := Algebra.adjoin_le this
+      exact fun f hf => this hf
 
     have sep_sigma : A_sigma.SeparatesPoints := by
       intro x y hxy
-      have hxy' : (x : E) ≠ (y : E) :=
-        Subtype.coe_ne_coe.mpr hxy
       have hequiv: b.toBasis.equivFunL x ≠ b.toBasis.equivFunL y := by simpa
       obtain ⟨i, hi⟩ : ∃ i : (Fin n), b.toBasis.equivFunL x i ≠ b.toBasis.equivFunL y i := by
         contrapose! hequiv
@@ -240,16 +281,10 @@ theorem IoD2 (f : E → E)
       have hf_mem : f ∈ A_sigma := Algebra.subset_adjoin (Set.mem_range_self i)
       exact ⟨f, ⟨Set.mem_image_of_mem (fun f ↦ f.1) (hf_mem), hi⟩⟩
 
-
-    let incl : C(Metric.closedBall (0 : E) 1, E) := ⟨Subtype.val, continuous_subtype_val⟩
-    let G_rest : C(sigma, E) := incl.comp (G.restrict sigma)
-    let G_i (i : Fin n) : C(sigma, ℝ) :=
-      { toFun := fun y => b.toBasis.equivFunL (G_rest y) i,
+    let G_i (i : Fin n) : C(E, ℝ) :=
+      { toFun := fun y => b.toBasis.equivFunL (G y) i,
         continuous_toFun := by
           fun_prop }
-    haveI : CompactSpace sigma := isCompact_iff_compactSpace.mp hsigmacompact
-
-
     let l := b.toBasis.equivFunL
 
     have hpos_symm : 0 < ‖(l.symm : ((Fin n) → ℝ) →L[ℝ] E)‖ := by
@@ -270,8 +305,6 @@ theorem IoD2 (f : E → E)
         exact hw this
 
     let C := ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖
-
-
     rcases hδ with ⟨δ, hδ1, hδ2⟩
     let ε' := δ / (2 * C)
     have hε' : 0 < ε' := by
@@ -280,30 +313,29 @@ theorem IoD2 (f : E → E)
       · apply mul_pos
         · exact zero_lt_two
         · exact hpos_symm
-    have approx (i : (Fin n)) : ∃ p_i : A_sigma, ‖(p_i : C(sigma, ℝ)) - G_i i‖ < ε' :=
-      ContinuousMap.exists_mem_subalgebra_near_continuousMap_of_separatesPoints
-        A_sigma sep_sigma (G_i i) ε' hε'
+
+    have approx (i : Fin n) := ContinuousMap.exists_mem_subalgebra_near_continuous_of_isCompact_of_separatesPoints sep_sigma (G_i i) hsigmacompact hε'
     choose p_i hp_i using approx
 
-    let P : C(sigma, E) :=
-      { toFun := fun y => b.toBasis.equivFunL.symm (fun i => (p_i i : C(sigma, ℝ)) y),
+
+    let P : C(E, E) :=
+      { toFun := fun y => b.toBasis.equivFunL.symm (fun i => (p_i i : C(E, ℝ)) y),
         continuous_toFun := by fun_prop}
-    have hP_bound : ∀ y , ‖P y - G_rest y‖ < δ := by
-      intro y
-      let v : Fin n → ℝ := fun i => (p_i i : C(sigma, ℝ)) y - (b.toBasis.equivFunL (G_rest y)) i
+    have hP_bound : ∀ y ∈ sigma , ‖P y - G y‖ < δ := by
+      intro y hy
+      let v : Fin n → ℝ := fun i => (p_i i : C(E, ℝ)) y - (b.toBasis.equivFunL (G y)) i
       have hv i : |v i| < ε' := by
-        have := hp_i i
-        rw [ContinuousMap.norm_lt_iff _ hε'] at this
-        exact this y
+        have := (hp_i i).2 y hy
+        aesop
       have hnorm_v : ‖v‖ < ε' := by
         rw [pi_norm_lt_iff hε']
         intro i
         exact hv i
-      have hP_eq : P y - G_rest y = l.symm v := by
+      have hP_eq : P y - G y = l.symm v := by
         dsimp [P, v]
-        have h_repr_eq : b.toBasis.repr (G_rest y) = l (G_rest y) := rfl
-        have hG : G_rest y = l.symm (l (G_rest y)) := (l.symm_apply_apply (G_rest y)).symm
-        have h_simp : l (l.symm (l (G_rest y))) = l (G_rest y) := by rw [l.symm_apply_apply (G_rest y)]
+        have h_repr_eq : b.toBasis.repr (G y) = l (G y) := rfl
+        have hG : G y = l.symm (l (G y)) := (l.symm_apply_apply (G y)).symm
+        have h_simp : l (l.symm (l (G y))) = l (G y) := by rw [l.symm_apply_apply (G y)]
         rw [h_repr_eq, hG, ← l.symm.map_sub, h_simp]
         rfl
       rw [hP_eq]
@@ -324,9 +356,43 @@ theorem IoD2 (f : E → E)
 
     letI : MeasurableSpace E := borel E
     haveI : BorelSpace E := ⟨rfl⟩
-    have hvolume := MeasureTheory.Measure.addHaar_sphere_of_ne_zero volume c (ne_of_gt hε1)
+    have h_sphere_null := MeasureTheory.Measure.addHaar_sphere_of_ne_zero volume c (ne_of_gt hε1)
 
-    -- have hP : DifferentiableOn ℝ P (Metric.sphere c ε) :=
+    have hp_i_diff (i : Fin n) : Differentiable ℝ (p_i i) := hA_diff (p_i i) (hp_i i).1
+    have hP_diff : Differentiable ℝ P := by
+      have h1 : Differentiable ℝ (fun y => fun i => (p_i i) y) := differentiable_pi.mpr hp_i_diff
+      exact (l.symm : (Fin n → ℝ) →L[ℝ] E).differentiable.comp h1
+
+    have hP_image_null : volume (P '' (Metric.sphere c ε)) = 0 := MeasureTheory.addHaar_image_eq_zero_of_differentiableOn_of_addHaar_eq_zero volume hP_diff.differentiableOn h_sphere_null
+
+
+
+
+
+      -- #check p_i i
+
+
+
+    -- hA_diff (p_i i) (p_i i).property
+      -- specialize hA_diff (p_i i) _
+      -- exact (p_i i).2
+
+
+
+
+    -- have hcoord_diff (i : Fin n) : Differentiable ℝ (fun x => (b.toBasis.equivFunL x) i) := by
+    --   let proj_i : (Fin n → ℝ) →L[ℝ] ℝ := ContinuousLinearMap.proj i
+    --   let L_i : E →L[ℝ] ℝ := proj_i.comp (b.toBasis.equivFunL : E →L[ℝ] (Fin n → ℝ))
+    --   exact L_i.differentiable
+
+
+
+    -- have hP : Differentiable ℝ P := by
+    --   rw [differentiable_pi]
+
+
+    -- have hP : DifferentiableOn ℝ P (Metric.sphere c ε) := by
+    --   -- rw [differentiableOn_pi]
 
 
 

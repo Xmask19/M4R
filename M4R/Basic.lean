@@ -28,6 +28,8 @@ open MeasureTheory MeasureTheory.Measure
 -- #synth MeasureSpace (EuclideanSpace ℝ (Fin 3))
 
 set_option linter.unnecessarySimpa false
+-- set_option backward.isDefEq.respectTransparency false
+
 -- def zero : E := 0 : E
 -- {x : E // x ∈ Metric.closedBall 0 1 } → {x : E // x ∈ Metric.closedBall 0 1 }
 theorem brouwer_fixed_point (f : (Metric.closedBall (0 : E) 1) → (Metric.closedBall 0 1)) (hf : Continuous f) :
@@ -150,9 +152,8 @@ theorem IoD2 (f : E → E)
         aesop
       · have h3 : c ∈ Metric.sphere c ε := Metric.mem_sphere.mpr h2
         rw [mem_sphere_iff_norm] at h3
-        simp only [sub_self, norm_zero] at h3
-        sorry
-        -- aesop
+        simp at h3
+        exact hε1.ne h3
     let Phi : (E) → (E) := fun y => (max (ε / ‖y - c‖) (1 : ℝ)) • y
     -- have hPhiimg : Phi '' (f '' Metric.closedBall 0 1) = sigma := by
     --     ext x
@@ -164,6 +165,7 @@ theorem IoD2 (f : E → E)
       simp only [ne_eq, norm_eq_zero]
       by_contra hx
       rw [sub_eq_zero] at hx
+
       sorry
       -- aesop
     have hGavoids : ∀ y ∈ sigma1, G y ≠ (0 : (E)) := by
@@ -207,10 +209,7 @@ theorem IoD2 (f : E → E)
     let b := stdOrthonormalBasis ℝ E
     let n := Module.finrank ℝ E
     have h1  : 0 < n := (Module.finrank_pos_iff_of_free ℝ E).mpr hnontrivial
-
     have hn : n ≠ 0 := ne_zero_of_lt h1
-
-
     have hb := OrthonormalBasis.norm_eq_one b
     -- have hb2 : ∀ i ∈ (Fin n) ‖b.toBasis i‖ =1 :=
     -- have : Fintype ι := by sorry
@@ -225,15 +224,12 @@ theorem IoD2 (f : E → E)
     -- let generator_E : Set C(E, ℝ) := Set.range coord
     -- let A_E : Subalgebra ℝ C(E, ℝ) := Algebra.adjoin ℝ generator_E
 
-
-
     -- have hcoord_sigma :  ∀ i : (Fin n), Differentiable ℝ (coord_sigma i) := by
     --   intro i
     --   refine IsBoundedLinearMap.differentiable ?_
     --   refine { toIsLinearMap := ?_, bound := ?_ }
     --   · sorry
     --   ·
-
     --     use 1
     --     constructor
     --     · linarith
@@ -257,7 +253,6 @@ theorem IoD2 (f : E → E)
       exact hcoord_diff i
 
     let A_sigma : Subalgebra ℝ C(E, ℝ) := Algebra.adjoin ℝ generator_sigma
-
     have hA_diff : ∀ f ∈ A_sigma, Differentiable ℝ f := by
       let D : Subalgebra ℝ C(E, ℝ) :=
         { carrier := {f | Differentiable ℝ f}
@@ -269,7 +264,6 @@ theorem IoD2 (f : E → E)
       have : generator_sigma ⊆ D := hgen_diff
       have : A_sigma ≤ D := Algebra.adjoin_le this
       exact fun f hf => this hf
-
     have sep_sigma : A_sigma.SeparatesPoints := by
       intro x y hxy
       have hequiv: b.toBasis.equivFunL x ≠ b.toBasis.equivFunL y := by simpa
@@ -280,13 +274,11 @@ theorem IoD2 (f : E → E)
       let f := coord_sigma i
       have hf_mem : f ∈ A_sigma := Algebra.subset_adjoin (Set.mem_range_self i)
       exact ⟨f, ⟨Set.mem_image_of_mem (fun f ↦ f.1) (hf_mem), hi⟩⟩
-
     let G_i (i : Fin n) : C(E, ℝ) :=
       { toFun := fun y => b.toBasis.equivFunL (G y) i,
         continuous_toFun := by
           fun_prop }
     let l := b.toBasis.equivFunL
-
     have hpos_symm : 0 < ‖(l.symm : ((Fin n) → ℝ) →L[ℝ] E)‖ := by
         refine lt_of_le_of_ne (norm_nonneg _) ?_
         intro h_eq
@@ -303,7 +295,6 @@ theorem IoD2 (f : E → E)
         have : l (l.symm w) = l 0 := congrArg l this
         rw [l.apply_symm_apply w, map_zero] at this
         exact hw this
-
     let C := ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖
     rcases hδ with ⟨δ, hδ1, hδ2⟩
     let ε' := δ / (2 * C)
@@ -313,11 +304,8 @@ theorem IoD2 (f : E → E)
       · apply mul_pos
         · exact zero_lt_two
         · exact hpos_symm
-
     have approx (i : Fin n) := ContinuousMap.exists_mem_subalgebra_near_continuous_of_isCompact_of_separatesPoints sep_sigma (G_i i) hsigmacompact hε'
     choose p_i hp_i using approx
-
-
     let P : C(E, E) :=
       { toFun := fun y => b.toBasis.equivFunL.symm (fun i => (p_i i : C(E, ℝ)) y),
         continuous_toFun := by fun_prop}
@@ -344,7 +332,6 @@ theorem IoD2 (f : E → E)
       have step3 : ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖ * ‖v‖ <
               ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖ * ε' := mul_lt_mul_of_pos_left hnorm_v hpos_symm
       have step4 : ‖l.symm v‖ < ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖ * ε' := lt_of_le_of_lt step2 step3
-
       calc
         ‖l.symm v‖ < C * ε' := step4
         _ = δ / 2 := by
@@ -353,17 +340,66 @@ theorem IoD2 (f : E → E)
           rw [div_self_eq_one₀]
           exact Ne.symm (ne_of_lt hpos_symm)
         _ < δ := half_lt_self hδ1
-
     letI : MeasurableSpace E := borel E
     haveI : BorelSpace E := ⟨rfl⟩
     have h_sphere_null := MeasureTheory.Measure.addHaar_sphere_of_ne_zero volume c (ne_of_gt hε1)
-
     have hp_i_diff (i : Fin n) : Differentiable ℝ (p_i i) := hA_diff (p_i i) (hp_i i).1
     have hP_diff : Differentiable ℝ P := by
       have h1 : Differentiable ℝ (fun y => fun i => (p_i i) y) := differentiable_pi.mpr hp_i_diff
       exact (l.symm : (Fin n → ℝ) →L[ℝ] E).differentiable.comp h1
-
     have hP_image_null : volume (P '' (Metric.sphere c ε)) = 0 := MeasureTheory.addHaar_image_eq_zero_of_differentiableOn_of_addHaar_eq_zero volume hP_diff.differentiableOn h_sphere_null
+
+    have hball_pos := Metric.measure_ball_pos volume (0 : E) hδ1
+
+
+    -- have hnot_subset : ¬ (Metric.ball 0 δ ⊆ P '' Metric.sphere c ε) := by
+    --   intro hsub
+    --   have : volume (Metric.ball (0 : E) δ) ≤ volume (P '' Metric.sphere c ε) := measure_mono hsub
+    --   rw [hP_image_null] at this
+    --   have := lt_of_lt_of_le hball_pos this
+
+    --   exact LT.lt.false this
+
+    -- rw [Set.not_subset] at hnot_subset
+
+    -- rcases hnot_subset with ⟨v, hv1, hv2⟩
+
+    -- have h6: Continuous fun y => P y - v := by
+    --   fun_prop
+
+    -- let P' : C(E, E) :=
+    --   { toFun := fun y => P y - v,
+    --     continuous_toFun:= by fun_prop}
+
+
+    -- have hP'sigma2 : ∀ y ∈ Metric.sphere c ε, P' y ≠ 0 := by
+    --   intro y hy
+    --   simp [P']
+    --   intro h_eq_zero
+    --   have : P y = v := by rwa [sub_eq_zero] at h_eq_zero
+    --   exact hv2 ⟨y, hy, this⟩
+
+    -- have hP'sigma1 : ∀ y ∈ sigma1, P' y ≠ 0 := by
+    --   intro y hy
+    --   simp [P']
+    --   intro h_eq_zero
+
+
+
+
+
+
+      -- rw? at hnot_subset
+
+
+
+    -- have hball_pos : 0 < volume (Metric.ball 0 δ) :=
+    --   MeasureTheory.measure_ball_pos volume 0 δ hδ1
+
+
+
+
+
 
 
 

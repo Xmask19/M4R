@@ -149,7 +149,8 @@ theorem IoD2 (f : E → E)
       · rw [Set.mem_sep_iff] at h1
         rcases h1 with ⟨h1, h2⟩
         simp only [sub_self, norm_zero, ge_iff_le] at h2
-        aesop
+        sorry
+        -- aesop
       · have h3 : c ∈ Metric.sphere c ε := Metric.mem_sphere.mpr h2
         rw [mem_sphere_iff_norm] at h3
         simp at h3
@@ -211,32 +212,6 @@ theorem IoD2 (f : E → E)
     have h1  : 0 < n := (Module.finrank_pos_iff_of_free ℝ E).mpr hnontrivial
     have hn : n ≠ 0 := ne_zero_of_lt h1
     have hb := OrthonormalBasis.norm_eq_one b
-    -- have hb2 : ∀ i ∈ (Fin n) ‖b.toBasis i‖ =1 :=
-    -- have : Fintype ι := by sorry
-
-    -- let coord (i : ι): C(E, ℝ) :=
-    --   { toFun := fun x => b.equivFunL x i,
-    --     continuous_toFun := by fun_prop }
-
-    -- -- let coord_E (i : ι) : C(E, ℝ) :=
-    -- --     { toFun := fun y => l y i,
-    -- --         continuous_toFun := (continuous_apply i).comp l.continuous }
-    -- let generator_E : Set C(E, ℝ) := Set.range coord
-    -- let A_E : Subalgebra ℝ C(E, ℝ) := Algebra.adjoin ℝ generator_E
-
-    -- have hcoord_sigma :  ∀ i : (Fin n), Differentiable ℝ (coord_sigma i) := by
-    --   intro i
-    --   refine IsBoundedLinearMap.differentiable ?_
-    --   refine { toIsLinearMap := ?_, bound := ?_ }
-    --   · sorry
-    --   ·
-    --     use 1
-    --     constructor
-    --     · linarith
-    --     · intro x
-    --       simp only [Real.norm_eq_abs, one_mul]
-    --       unfold coord_sigma
-    --       rw [ContinuousMap.coe_mk]
 
     let coord_sigma (i : Fin n) : C(E, ℝ) :=
       { toFun := fun x => b.toBasis.equivFunL x i
@@ -264,6 +239,7 @@ theorem IoD2 (f : E → E)
       have : generator_sigma ⊆ D := hgen_diff
       have : A_sigma ≤ D := Algebra.adjoin_le this
       exact fun f hf => this hf
+
     have sep_sigma : A_sigma.SeparatesPoints := by
       intro x y hxy
       have hequiv: b.toBasis.equivFunL x ≠ b.toBasis.equivFunL y := by simpa
@@ -314,7 +290,8 @@ theorem IoD2 (f : E → E)
       let v : Fin n → ℝ := fun i => (p_i i : C(E, ℝ)) y - (b.toBasis.equivFunL (G y)) i
       have hv i : |v i| < ε' := by
         have := (hp_i i).2 y hy
-        aesop
+        sorry
+        -- aesop
       have hnorm_v : ‖v‖ < ε' := by
         rw [pi_norm_lt_iff hε']
         intro i
@@ -343,92 +320,161 @@ theorem IoD2 (f : E → E)
     letI : MeasurableSpace E := borel E
     haveI : BorelSpace E := ⟨rfl⟩
     have h_sphere_null := MeasureTheory.Measure.addHaar_sphere_of_ne_zero volume c (ne_of_gt hε1)
+
     have hp_i_diff (i : Fin n) : Differentiable ℝ (p_i i) := hA_diff (p_i i) (hp_i i).1
     have hP_diff : Differentiable ℝ P := by
       have h1 : Differentiable ℝ (fun y => fun i => (p_i i) y) := differentiable_pi.mpr hp_i_diff
       exact (l.symm : (Fin n → ℝ) →L[ℝ] E).differentiable.comp h1
     have hP_image_null : volume (P '' (Metric.sphere c ε)) = 0 := MeasureTheory.addHaar_image_eq_zero_of_differentiableOn_of_addHaar_eq_zero volume hP_diff.differentiableOn h_sphere_null
 
-    have hball_pos := Metric.measure_ball_pos volume (0 : E) hδ1
+
+    have sigma1_subset_sigma : sigma1 ⊆ sigma := Set.subset_union_left
+
+    have h0_notin_image : (0 : E) ∉ P '' sigma1 := by
+      rintro ⟨y, hy, h⟩
+      have hG : ‖(G y :E)‖ ≥ δ := (hδ2.2 y hy)
+      have hP : ‖P y - G y‖ < δ := hP_bound y (sigma1_subset_sigma hy)
+
+      rw [h] at hP
+      have : ‖(G y : E)‖ = ‖G y - P y‖ := by rw [h, sub_zero]
+      simp only [_root_.zero_sub, norm_neg] at hP
+      linarith
+
+    have ⟨v, hvnorm, hv1, hv2⟩ : ∃ (v: E), ‖v‖ < δ ∧ ¬ v ∈ P '' sigma1 ∧ ¬ v ∈ P '' sigma2:= by
+      by_cases hsigma1nonempty : sigma1.Nonempty
+      · have hP_cont : ContinuousOn (fun v => ‖P v‖) sigma1 := by fun_prop
+        let ⟨d, hd1, hd2⟩ := IsCompact.exists_isMinOn hsigma1compact hsigma1nonempty hP_cont
+        have hd3 : 0 < ‖P d‖ := by
+          simp only [norm_pos_iff, ne_eq]
+          by_contra heq0
+          have : 0 ∈ P '' sigma1 := by
+            rw [← heq0]
+            exact Set.mem_image_of_mem (⇑P) hd1
+          exact h0_notin_image this
+        let k := min ‖P d‖ δ
+        have hk : 0 < k := lt_min_iff.mpr ⟨hd3, hδ1⟩
+        have hball_pos := Metric.measure_ball_pos volume (0 : E) hk
+        have hnot_subset : ¬ (Metric.ball 0 k ⊆ P '' Metric.sphere c ε) := by
+          intro hsub
+          have : volume (Metric.ball (0 : E) k) ≤ volume (P '' Metric.sphere c ε) := measure_mono hsub
+          rw [hP_image_null] at this
+          have := lt_of_lt_of_le hball_pos this
+          exact LT.lt.false this
+        rw [Set.not_subset] at hnot_subset
+        rcases hnot_subset with ⟨v, hvnorm, hv1⟩
+        use v
+        constructor
+        · have hnormk : ‖v‖ < k := mem_ball_zero_iff.mp hvnorm
+          have : k ≤ δ := min_le_right ‖P d‖ δ
+          linarith
+        · constructor
+          · intro hin1
+            rcases hin1 with ⟨x, hx, rfl⟩
+            have : ‖P x‖ ≥ ‖P d‖ := by
+              rw [isMinOn_iff] at hd2
+              exact hd2 x hx
+            have : ‖P x‖ < k := mem_ball_zero_iff.mp hvnorm
+            have : k ≤ ‖P d‖ := min_le_left ‖P d‖ δ
+            linarith
+          · intro hin2
+            exact hv1 hin2
+      · have hball_pos := Metric.measure_ball_pos volume (0 : E) hδ1
+        have hnot_subset2 : ¬ (Metric.ball 0 δ ⊆ P '' sigma2) := by
+          intro hsub
+          have : volume (Metric.ball (0 : E) δ) ≤ volume (P '' sigma2) := measure_mono hsub
+          grind
+        rcases Set.not_subset.1 hnot_subset2 with ⟨v, hv_in_ball, hv_notin_sigma2⟩
+        use v
+        constructor
+        · exact mem_ball_zero_iff.mp hv_in_ball
+        · constructor
+          · intro h1
+            exfalso
+            rcases h1 with ⟨x, hx, rfl⟩
+            exact hsigma1nonempty ⟨x, hx⟩
+          · grind
+
+    have h6: Continuous fun y => P y - v := by fun_prop
+
+    let P' : C(E, E) :=
+      { toFun := fun y => P y - v,
+        continuous_toFun:= by fun_prop}
+
+    let G_tilde : E → E := fun y => P' (Phi y)
+
+    have h7 : ∀ y ∈ f '' (Metric.closedBall (0 : E) 1), ‖G y - G_tilde y‖ < 2 * δ := by
+      intro y hy
+      by_cases hP :  ε < ‖y - c‖
+      ·
+        have hPhi : Phi y = y := by
+          unfold Phi
+          have hright : ε / ‖y - c‖ < 1 := by
+            have hyc : 0 < ‖y - c‖ := by linarith
+            rwa [div_lt_one hyc]
+          rw [max_eq_right_of_lt hright]
+          simp
+        unfold G_tilde
+        rw [hPhi]
+        have hy_sigma1 : y ∈ sigma1 := ⟨hy, le_of_lt hP⟩
+        have hy_sigma : y ∈ sigma := Or.inl hy_sigma1
+        calc
+          ‖G y - P' y‖ = ‖G y - (P y - v)‖ := rfl
+          _ = ‖(G y - P y) + v‖ := by rw [sub_sub_eq_add_sub, add_sub_right_comm]
+          _ ≤ ‖G y - P y‖ + ‖v‖ := norm_add_le _ _
+          _ = ‖P y - G y‖ + ‖v‖ := by rw [norm_sub_rev]
+          _ < δ + ‖v‖ := add_lt_add_left (hP_bound y hy_sigma) ‖v‖
+          _ = ‖v‖ + δ := add_comm _ _
+          _ < δ + δ := add_lt_add_left hvnorm δ
+          _ = 2 * δ := Eq.symm (two_mul δ)
+      ·
+        simp only [not_lt] at hP
+        unfold G_tilde
+        have hy_neq_c : c ≠ y := by sorry
+        have hpos : 0 < ‖y - c‖ := norm_pos_iff.mpr (sub_ne_zero.mpr (Ne.symm hy_neq_c))
+        have hleft : 1 ≤ ε / ‖y - c‖ := (one_le_div hpos).mpr hP
 
 
-    -- have hnot_subset : ¬ (Metric.ball 0 δ ⊆ P '' Metric.sphere c ε) := by
-    --   intro hsub
-    --   have : volume (Metric.ball (0 : E) δ) ≤ volume (P '' Metric.sphere c ε) := measure_mono hsub
-    --   rw [hP_image_null] at this
-    --   have := lt_of_lt_of_le hball_pos this
-
-    --   exact LT.lt.false this
-
-    -- rw [Set.not_subset] at hnot_subset
-
-    -- rcases hnot_subset with ⟨v, hv1, hv2⟩
-
-    -- have h6: Continuous fun y => P y - v := by
-    --   fun_prop
-
-    -- let P' : C(E, E) :=
-    --   { toFun := fun y => P y - v,
-    --     continuous_toFun:= by fun_prop}
-
-
-    -- have hP'sigma2 : ∀ y ∈ Metric.sphere c ε, P' y ≠ 0 := by
-    --   intro y hy
-    --   simp [P']
-    --   intro h_eq_zero
-    --   have : P y = v := by rwa [sub_eq_zero] at h_eq_zero
-    --   exact hv2 ⟨y, hy, this⟩
-
-    -- have hP'sigma1 : ∀ y ∈ sigma1, P' y ≠ 0 := by
-    --   intro y hy
-    --   simp [P']
-    --   intro h_eq_zero
+        have hPhi : Phi y = ε • y := by
+          unfold Phi
+          rw [max_eq_left _]
 
 
 
+        -- calc
+          -- ‖G y - P' (Phi y)‖
+          --   = ‖G y - (P (Phi y) - v)‖ := rfl
+          -- _ = ‖(G y - P (Phi y)) + v‖ := by rw [sub_sub_eq_add_sub, add_sub_right_comm]
+          -- _ ≤ ‖G y - P (Phi y)‖ + ‖v‖ := norm_add_le _ _
+          -- _ ≤ ‖(G y :E)‖ + ‖P (Phi y)‖ + ‖v‖ := add_le_add (norm_sub_le (G y : E) (P (Phi y))) (le_refl ‖v‖)
+          -- _ ≤ 0.1 + ‖P (Phi y)‖ + ‖v‖ := add_le_add_right (add_le_add_left (hG_norm y h_in_image) _) _
+
+
+        -- unfold G_tilde
 
 
 
-      -- rw? at hnot_subset
+            -- have hyc : 0 < ‖y - c‖ := by linarith
+            -- rwa [div_lt_one hyc]
+
+
+          -- _ < δ + ‖v‖ := add_lt_add_right (hP_bound y hy_sigma) ‖v‖
+
+
+          -- add_lt_add_left (hP_bound y hy_sigma) _
+          -- _ < δ + δ := add_lt_add_left hv _
+          -- _ = 2δ := by ring
 
 
 
-    -- have hball_pos : 0 < volume (Metric.ball 0 δ) :=
-    --   MeasureTheory.measure_ball_pos volume 0 δ hδ1
+            -- rw [div_lt_one (norm_pos_iff.mpr (ne_of_gt hP))]
+            -- exact hP
+            -- aesop
+      -- sorry
+
+    -- let G_tilde : C(E, E) := P'.comp Phi
 
 
 
-
-
-
-
-
-
-
-      -- #check p_i i
-
-
-
-    -- hA_diff (p_i i) (p_i i).property
-      -- specialize hA_diff (p_i i) _
-      -- exact (p_i i).2
-
-
-
-
-    -- have hcoord_diff (i : Fin n) : Differentiable ℝ (fun x => (b.toBasis.equivFunL x) i) := by
-    --   let proj_i : (Fin n → ℝ) →L[ℝ] ℝ := ContinuousLinearMap.proj i
-    --   let L_i : E →L[ℝ] ℝ := proj_i.comp (b.toBasis.equivFunL : E →L[ℝ] (Fin n → ℝ))
-    --   exact L_i.differentiable
-
-
-
-    -- have hP : Differentiable ℝ P := by
-    --   rw [differentiable_pi]
-
-
-    -- have hP : DifferentiableOn ℝ P (Metric.sphere c ε) := by
-    --   -- rw [differentiableOn_pi]
 
 
 

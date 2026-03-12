@@ -1,4 +1,4 @@
-# M4R
+# InvarianceOfDomain
 
 ## GitHub configuration
 

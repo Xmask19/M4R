@@ -36,40 +36,38 @@ theorem brouwer_fixed_point (f : (Metric.closedBall (0 : E) 1) → (Metric.close
     ∃ x, f x = x := by sorry
 
 
-theorem restated_IoD  (f : E → E)
-    (hf_cont : Continuous f) (hf_inj : Function.Injective f)
-    : f 0 ∈ interior (f ''(Metric.closedBall 0 1)) := by sorry
-
-
-
-theorem IoD2 (f : E → E)
+/-- Let B^n be the closed unit ball (Metric.closedBall). Let f : B^n → ℝ^n be an continuous injective map. Then f(0) lies in the interior of f(B^n).  -/
+theorem invariance_of_domain_interior (f : E → E)
     (hf_cont : ContinuousOn f (Metric.closedBall 0 1)) (hf_inj : Set.InjOn f (Metric.closedBall 0 1))
     : f 0 ∈ interior (f ''(Metric.closedBall 0 1)) := by
-  -- let d : ℕ := Set.finrank ℝ E
 
-  let hBn_equiv := Equiv.Set.imageOfInjOn f (Metric.closedBall 0 1) hf_inj
-  let hBn_inv_cmap : C(f '' Metric.closedBall 0 1, (Metric.closedBall (0 : E) 1)) :=
-  ⟨hBn_equiv.symm,  Continuous.continuous_symm_of_equiv_compact_to_t2 (continuous_induced_rng.mpr <|
+  let FEquiv := Equiv.Set.imageOfInjOn f (Metric.closedBall 0 1) hf_inj
+  -- The inverse map of f is continuous
+  let FInvCmap : C(f '' Metric.closedBall 0 1, (Metric.closedBall (0 : E) 1)) :=
+  ⟨FEquiv.symm,  Continuous.continuous_symm_of_equiv_compact_to_t2 (continuous_induced_rng.mpr <|
     ContinuousOn.restrict hf_cont)⟩
   have hballimageclosed : IsClosed (f '' Metric.closedBall 0 1) := IsClosed.mono
     ((isCompact_closedBall 0 1).image_of_continuousOn hf_cont).isClosed fun U a ↦ a
-  obtain ⟨G, hG⟩ := ContinuousMap.exists_restrict_eq hballimageclosed hBn_inv_cmap
-  -- clear! h_closed_image
+  -- The Tietze extension theorem, finding a continuous function G that extends f⁻¹
+  obtain ⟨G, hG⟩ := ContinuousMap.exists_restrict_eq hballimageclosed FInvCmap
+  -- G has a zero at f 0
   have hG0 : G (f 0) = (0 : E) := by
     let fzero' : (f '' Metric.closedBall (0 : E) 1) := ⟨f 0, ⟨0, by simp, rfl⟩⟩
     have := congr($hG fzero')
     conv_lhs at this => simp [fzero']
-    have H : (⟨f 0, ⟨0, by simp, rfl⟩⟩ : f '' Metric.closedBall 0 1) = hBn_equiv ⟨0, by simp⟩ := Subtype.ext rfl
-    simp [this, hBn_inv_cmap, fzero', H]
+    have H : (⟨f 0, ⟨0, by simp, rfl⟩⟩ : f '' Metric.closedBall 0 1) = FEquiv ⟨0, by simp⟩ := Subtype.ext rfl
+    simp [this, FInvCmap, fzero', H]
+
   have hStability_of_zero (Gtilde : E → E)
-      (hGtilde : ContinuousOn Gtilde (f '' Metric.closedBall 0 1))(hy : ∀ y ∈ (f '' (Metric.closedBall 0 1)), ‖G y - Gtilde y‖ ≤ 1 ) : ∃ y ∈ f '' (Metric.closedBall 0 1), Gtilde y = 0 := by
+      (hGtilde : ContinuousOn Gtilde (f '' Metric.closedBall 0 1))(hy : ∀ y ∈ (f '' Metric.closedBall 0 1), ‖G y - Gtilde y‖ ≤ 1 ) : ∃ y ∈ f '' Metric.closedBall 0 1, Gtilde y = 0 := by
+    -- We apply Brouwer's fixed point theorem to diff_fun to show that if Gtilde is a continuous function that takes values close to G on F(B^n), it has a zero
     let diff_fun : E → E := fun x => x - Gtilde (f x)
     have hMaps_To : Set.MapsTo diff_fun (Metric.closedBall (0 : E) 1) (Metric.closedBall (0 : E) 1) := by
       intro x hx
       dsimp [diff_fun]
       have hxeq : x = G (f x) := by
-        have hfx : f x ∈ f '' (Metric.closedBall 0 1) := Set.mem_image_of_mem f hx
-        simp only [← G.restrict_apply_mk _ _ hfx, hG, ContinuousMap.coe_mk, hBn_inv_cmap, hBn_equiv]
+        have hfx : f x ∈ f '' Metric.closedBall 0 1 := Set.mem_image_of_mem f hx
+        simp only [← G.restrict_apply_mk _ _ hfx, hG, ContinuousMap.coe_mk, FInvCmap, FEquiv]
         let e := Equiv.Set.imageOfInjOn f (Metric.closedBall 0 1) hf_inj
         have hfxeq : ⟨f (x : E), hfx⟩ = e ⟨x, Metric.mem_closedBall.mpr hx⟩ := SetCoe.ext rfl
         rw [hfxeq, (e.symm_apply_apply ⟨x, Metric.mem_closedBall.mpr hx⟩)]
@@ -84,19 +82,6 @@ theorem IoD2 (f : E → E)
       exact hGtilde.comp hf_cont (Set.mapsTo_image f (Metric.closedBall 0 1))
 
 
-
-
-      -- exact hGtilde
-
-
-      -- apply Continuous.comp
-      -- ·
-
-
-
-
-      -- apply ContinuousOn.sub (continuousOn_id' (Metric.closedBall 0 1)) (Continuous.comp_continuousOn' ?_ hf_cont)
-
     have hBrouwer := brouwer_fixed_point (Set.MapsTo.restrict diff_fun (Metric.closedBall (0 : E)  1) (Metric.closedBall 0 1) hMaps_To)
     rcases hBrouwer (ContinuousOn.mapsToRestrict diff_fun_cont_on hMaps_To) with ⟨x, hx⟩
     refine ⟨f x, ⟨⟨x ,⟨(by simpa [Metric.mem_closedBall, dist_zero_right] using mem_closedBall_zero_iff.mp x.2), rfl⟩⟩, ?_⟩⟩
@@ -109,7 +94,7 @@ theorem IoD2 (f : E → E)
   rcases subsingleton_or_nontrivial E with hsubsingleton | hnontrivial
   · sorry
   · by_contra hnotinterior
-    have hGconton := Continuous.continuousOn (ContinuousMap.continuous G) (s := f '' (Metric.closedBall 0 1))
+    have hGconton := Continuous.continuousOn (ContinuousMap.continuous G) (s := f '' Metric.closedBall 0 1)
     -- have h8 : IsCompact (Metric.closedBall 0 1) := by exact isCompact_closedBall 0 1
     have himgcompact := IsCompact.image_of_continuousOn (isCompact_closedBall 0 1) hf_cont
     have hGuniformcont := IsCompact.uniformContinuousOn_of_continuous himgcompact hGconton
@@ -131,10 +116,9 @@ theorem IoD2 (f : E → E)
       rw [Set.not_subset] at hnotball
       rcases hnotball with ⟨c, hc1, hc2⟩
       exact ⟨c, ⟨Metric.mem_ball.mp hc1, (Set.mem_compl_iff (f '' Metric.closedBall 0 1) c).mp hc2⟩⟩
-    let sigma1 : Set (E) := {y ∈ f '' (Metric.closedBall 0 1) | ‖y - c‖ ≥ ε}
+    let sigma1 : Set (E) := {y ∈ f '' Metric.closedBall 0 1 | ‖y - c‖ ≥ ε}
     let sigma2 : Set (E) := Metric.sphere c ε
     let sigma := sigma1 ∪ sigma2
-    -- change this proof to show that sigma1 and sigma2 are each compact as you use compactness of sigma1 later
     have hsigma1compact : IsCompact sigma1 := by
       rw [Metric.isCompact_iff_isClosed_bounded]
       refine ⟨?_, Bornology.IsBounded.subset (IsCompact.isBounded himgcompact) (Set.sep_subset (f '' Metric.closedBall 0 1) fun x ↦ ‖x - c‖ ≥ ε)⟩
@@ -167,15 +151,12 @@ theorem IoD2 (f : E → E)
       · rw [Set.mem_sep_iff] at h1
         rcases h1 with ⟨h1, h2⟩
         simp only [sub_self, norm_zero, ge_iff_le] at h2
-        sorry
-        -- aesop
+        simp_all only [not_true_eq_false, FInvCmap, FEquiv]
       · have h3 : c ∈ Metric.sphere c ε := Metric.mem_sphere.mpr h2
         rw [mem_sphere_iff_norm] at h3
-        simp at h3
+        simp only [sub_self, norm_zero] at h3
         exact hε1.ne h3
     let Phi : (E) → (E) := fun y => c + (max (ε / ‖y - c‖) (1 : ℝ)) • (y - c)
-    -- have hPhiimg : Phi '' (f '' Metric.closedBall 0 1) = sigma := by
-    --     ext x
     have hPhicont : ContinuousOn Phi (f '' Metric.closedBall 0 1) := by
       -- fun_prop
       apply ContinuousOn.add continuousOn_const ?_
@@ -200,12 +181,12 @@ theorem IoD2 (f : E → E)
       -- have hGinjective : Function.Injective ((f '' Metric.closedBall 0 1).restrict G)  := by
       have hG_inj_on_image : Set.InjOn G (f '' Metric.closedBall 0 1) := by
         intro x hx y hy h
-        have hx_eq : G x = hBn_inv_cmap ⟨x, hx⟩ := by
+        have hx_eq : G x = FInvCmap ⟨x, hx⟩ := by
           rw [← ContinuousMap.restrict_apply G (f '' Metric.closedBall 0 1) ⟨x, hx⟩, hG]
-        have hy_eq : G y = hBn_inv_cmap ⟨y, hy⟩ := by
+        have hy_eq : G y = FInvCmap ⟨y, hy⟩ := by
           rw [← ContinuousMap.restrict_apply G (f '' Metric.closedBall 0 1) ⟨y, hy⟩, hG]
         rw [hx_eq, hy_eq] at h
-        exact congr_arg Subtype.val (hBn_equiv.symm.injective h)
+        exact congr_arg Subtype.val (FEquiv.symm.injective h)
       have hyeq : y = f 0 := by
         have heq : G y = G (f 0) := SetCoe.ext (Eq.trans hGeq hG0.symm)
         apply hG_inj_on_image ((Set.mem_image f (Metric.closedBall 0 1) y).mpr hy.1) (Set.mem_image_of_mem f h1) at heq
@@ -420,29 +401,21 @@ theorem IoD2 (f : E → E)
           · grind
 
     have h6: Continuous fun y => P y - v := by fun_prop
-
     let P' : C(E, E) :=
       { toFun := fun y => P y - v,
         continuous_toFun:= by fun_prop}
-
     let G_tilde : E → E := fun y => P' (Phi y)
-
     have hG_tilde_cont : ContinuousOn G_tilde (f '' Metric.closedBall 0 1):= by
       unfold G_tilde
       rw [continuousOn_iff_continuous_restrict]
       apply Continuous.comp ?_ ?_
       · exact ContinuousMap.continuous P'
       · exact ContinuousOn.restrict hPhicont
-
-
     specialize hStability_of_zero G_tilde hG_tilde_cont
-
-
     have h7 : ∀ y ∈ f '' (Metric.closedBall (0 : E) 1), ‖G y - G_tilde y‖ ≤ 1:= by
       intro y hy
       by_cases hP :  ε < ‖y - c‖
-      ·
-        have hPhi : Phi y = y := by
+      · have hPhi : Phi y = y := by
           unfold Phi
           have hright : ε / ‖y - c‖ < 1 := by
             have hyc : 0 < ‖y - c‖ := by linarith
@@ -451,11 +424,8 @@ theorem IoD2 (f : E → E)
           simp
         unfold G_tilde
         rw [hPhi]
-
         have hy_sigma1 : y ∈ sigma1 := ⟨hy, le_of_lt hP⟩
         have hy_sigma : y ∈ sigma := Or.inl hy_sigma1
-
-
         calc
           ‖G y - P' y‖ = ‖G y - (P y - v)‖ := rfl
           _ = ‖(G y - P y) + v‖ := by rw [sub_sub_eq_add_sub, add_sub_right_comm]
@@ -472,19 +442,14 @@ theorem IoD2 (f : E → E)
         have hy_neq_c : c ≠ y := by sorry
         have hpos : 0 < ‖y - c‖ := norm_pos_iff.mpr (sub_ne_zero.mpr (Ne.symm hy_neq_c))
         have hleft : 1 ≤ ε / ‖y - c‖ := (one_le_div hpos).mpr hP
-
         have hPhi : Phi y = c + (ε / ‖y - c‖) • (y-c) := by
           unfold Phi
           rwa [max_eq_left]
-
         have hyimg : Phi y ∈ sigma2 := by
           rw [hPhi]
           dsimp [sigma2]
-          simp only [mem_sphere_iff_norm, add_sub_cancel_left]
-          sorry
-
-
-
+          have : y - c ≠ 0 := sub_ne_zero_of_ne (Ne.symm hy_neq_c)
+          simp [mem_sphere_iff_norm, add_sub_cancel_left, norm_smul, this, hε1.le]
 
 
         calc
@@ -495,70 +460,8 @@ theorem IoD2 (f : E → E)
         sorry
     sorry
 
-          -- _ ≤ ‖(G y : E)‖ + ‖P (Phi y)‖ + ‖v‖ := add_le_add (norm_sub_le (G y : E) (P (Phi y))) (le_refl ‖v‖)
 
-
-
-
-            -- apply abs_norm_sub_norm_le
-
-
-
-
-        --   unfold Phi
-        --   rw [max_eq_left _]
-
-        -- rw [hPhi]
-        -- dsimp [P']
-
-        -- specialize hP_bound (ε • y)
-
-
-
-
-        -- calc
-        --   ‖↑(G y) - P' (ε • y)‖
-
-
-
-
-
-        -- calc
-          -- ‖G y - P' (Phi y)‖
-          --   = ‖G y - (P (Phi y) - v)‖ := rfl
-          -- _ = ‖(G y - P (Phi y)) + v‖ := by rw [sub_sub_eq_add_sub, add_sub_right_comm]
-          -- _ ≤ ‖G y - P (Phi y)‖ + ‖v‖ := norm_add_le _ _
-          -- _ ≤ ‖(G y :E)‖ + ‖P (Phi y)‖ + ‖v‖ := add_le_add (norm_sub_le (G y : E) (P (Phi y))) (le_refl ‖v‖)
-          -- _ ≤ 0.1 + ‖P (Phi y)‖ + ‖v‖ := add_le_add_right (add_le_add_left (hG_norm y h_in_image) _) _
-
-
-        -- unfold G_tilde
-
-
-
-            -- have hyc : 0 < ‖y - c‖ := by linarith
-            -- rwa [div_lt_one hyc]
-
-
-          -- _ < δ + ‖v‖ := add_lt_add_right (hP_bound y hy_sigma) ‖v‖
-
-
-          -- add_lt_add_left (hP_bound y hy_sigma) _
-          -- _ < δ + δ := add_lt_add_left hv _
-          -- _ = 2δ := by ring
-
-
-
-            -- rw [div_lt_one (norm_pos_iff.mpr (ne_of_gt hP))]
-            -- exact hP
-            -- aesop
-      -- sorry
-
-    -- let G_tilde : C(E, E) := P'.comp Phi
-
-
-
-theorem invariance_of_domain (f : E → E)
+theorem invariance_of_domain_open_map (f : E → E)
     (hf_cont : Continuous f) (hf_inj : Function.Injective f) : IsOpenMap f := by
   intro U hU
   rw [isOpen_iff_forall_mem_open]
@@ -581,9 +484,9 @@ theorem invariance_of_domain (f : E → E)
   let e := f ∘ g
   have he_cont : Continuous e := Continuous.comp hf_cont hg_cont
   have he_inj : Function.Injective e := Function.Injective.comp hf_inj hg_inj
-  have h_interior : e 0 ∈ interior (e '' (Metric.closedBall 0 1)) :=
-    restated_IoD e he_cont he_inj
-  have h_g_eq : g '' (Metric.closedBall 0 1) = Metric.closedBall x ε := by
+  have h_interior : e 0 ∈ interior (e '' Metric.closedBall 0 1) :=
+    invariance_of_domain_interior e he_cont.continuousOn he_inj.injOn
+  have h_g_eq : g '' Metric.closedBall 0 1 = Metric.closedBall x ε := by
     unfold g
     rw [Eq.symm (Set.image_image (fun v ↦ v + x) (fun v ↦ ε • v) (Metric.closedBall 0 1)),
       Set.image_smul, smul_unitClosedBall]

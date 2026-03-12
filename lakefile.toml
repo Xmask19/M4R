@@ -1,7 +1,7 @@
-name = "M4R"
+name = "InvarianceOfDomain"
 version = "0.1.0"
 keywords = ["math"]
-defaultTargets = ["M4R"]
+defaultTargets = ["InvarianceOfDomain"]
 
 [leanOptions]
 pp.unicode.fun = true # pretty-prints `fun a ↦ b`
@@ -14,4 +14,4 @@ name = "mathlib"
 scope = "leanprover-community"
 
 [[lean_lib]]
-name = "M4R"
+name = "InvarianceOfDomain"

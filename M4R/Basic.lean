@@ -62,7 +62,7 @@ theorem IoD2 (f : E → E)
     have H : (⟨f 0, ⟨0, by simp, rfl⟩⟩ : f '' Metric.closedBall 0 1) = hBn_equiv ⟨0, by simp⟩ := Subtype.ext rfl
     simp [this, hBn_inv_cmap, fzero', H]
   have hStability_of_zero (Gtilde : E → E)
-      (hGtilde : Continuous Gtilde) (hy : ∀ y ∈ (f '' (Metric.closedBall 0 1)), ‖G y - Gtilde y‖ ≤ 1 ) : ∃ y ∈ f '' (Metric.closedBall 0 1), Gtilde y = 0 := by
+      (hGtilde : ContinuousOn Gtilde (f '' Metric.closedBall 0 1))(hy : ∀ y ∈ (f '' (Metric.closedBall 0 1)), ‖G y - Gtilde y‖ ≤ 1 ) : ∃ y ∈ f '' (Metric.closedBall 0 1), Gtilde y = 0 := by
     let diff_fun : E → E := fun x => x - Gtilde (f x)
     have hMaps_To : Set.MapsTo diff_fun (Metric.closedBall (0 : E) 1) (Metric.closedBall (0 : E) 1) := by
       intro x hx
@@ -77,8 +77,26 @@ theorem IoD2 (f : E → E)
       have h4 : f x ∈ f '' Metric.closedBall 0 1 := Set.mem_image_of_mem f hx
       apply hy (f x) at h4
       exact mem_closedBall_zero_iff.mpr h4
-    have diff_fun_cont_on : ContinuousOn diff_fun (Metric.closedBall 0 1):=
-      ContinuousOn.sub (continuousOn_id' (Metric.closedBall 0 1)) (Continuous.comp_continuousOn' hGtilde hf_cont)
+    have diff_fun_cont_on : ContinuousOn diff_fun (Metric.closedBall 0 1):= by
+      apply ContinuousOn.sub (continuousOn_id' (Metric.closedBall 0 1))
+      rw [continuousOn_iff_continuous_restrict]
+      refine ContinuousOn.restrict ?_
+      exact hGtilde.comp hf_cont (Set.mapsTo_image f (Metric.closedBall 0 1))
+
+
+
+
+      -- exact hGtilde
+
+
+      -- apply Continuous.comp
+      -- ·
+
+
+
+
+      -- apply ContinuousOn.sub (continuousOn_id' (Metric.closedBall 0 1)) (Continuous.comp_continuousOn' ?_ hf_cont)
+
     have hBrouwer := brouwer_fixed_point (Set.MapsTo.restrict diff_fun (Metric.closedBall (0 : E)  1) (Metric.closedBall 0 1) hMaps_To)
     rcases hBrouwer (ContinuousOn.mapsToRestrict diff_fun_cont_on hMaps_To) with ⟨x, hx⟩
     refine ⟨f x, ⟨⟨x ,⟨(by simpa [Metric.mem_closedBall, dist_zero_right] using mem_closedBall_zero_iff.mp x.2), rfl⟩⟩, ?_⟩⟩
@@ -155,20 +173,27 @@ theorem IoD2 (f : E → E)
         rw [mem_sphere_iff_norm] at h3
         simp at h3
         exact hε1.ne h3
-    let Phi : (E) → (E) := fun y => (max (ε / ‖y - c‖) (1 : ℝ)) • y
+    let Phi : (E) → (E) := fun y => c + (max (ε / ‖y - c‖) (1 : ℝ)) • (y - c)
     -- have hPhiimg : Phi '' (f '' Metric.closedBall 0 1) = sigma := by
     --     ext x
     have hPhicont : ContinuousOn Phi (f '' Metric.closedBall 0 1) := by
-      apply ContinuousOn.smul ?_ (continuousOn_id' (f '' Metric.closedBall 0 1))
-      rw [continuousOn_iff_continuous_restrict]
-      apply Continuous.max ((Continuous.div continuous_const (Continuous.norm (Continuous.sub continuous_subtype_val continuous_const))) ?_) continuous_const
-      intro x
-      simp only [ne_eq, norm_eq_zero]
-      by_contra hx
-      rw [sub_eq_zero] at hx
+      -- fun_prop
+      apply ContinuousOn.add continuousOn_const ?_
 
-      sorry
-      -- aesop
+
+      apply ContinuousOn.smul ?_ ?_
+      ·
+        rw [continuousOn_iff_continuous_restrict]
+
+        apply Continuous.max ((Continuous.div continuous_const (Continuous.norm (Continuous.sub continuous_subtype_val continuous_const))) ?_) continuous_const
+        intro x
+        simp only [ne_eq, norm_eq_zero]
+        by_contra hx
+        rw [sub_eq_zero] at hx
+        subst hx
+        simp_all only [ Subtype.coe_prop, not_true_eq_false]
+      · apply ContinuousOn.sub (continuousOn_id' (f '' Metric.closedBall 0 1)) continuousOn_const
+
     have hGavoids : ∀ y ∈ sigma1, G y ≠ (0 : (E)) := by
       intro y hy
       by_contra hGeq
@@ -402,7 +427,18 @@ theorem IoD2 (f : E → E)
 
     let G_tilde : E → E := fun y => P' (Phi y)
 
-    have h7 : ∀ y ∈ f '' (Metric.closedBall (0 : E) 1), ‖G y - G_tilde y‖ < 2 * δ := by
+    have hG_tilde_cont : ContinuousOn G_tilde (f '' Metric.closedBall 0 1):= by
+      unfold G_tilde
+      rw [continuousOn_iff_continuous_restrict]
+      apply Continuous.comp ?_ ?_
+      · exact ContinuousMap.continuous P'
+      · exact ContinuousOn.restrict hPhicont
+
+
+    specialize hStability_of_zero G_tilde hG_tilde_cont
+
+
+    have h7 : ∀ y ∈ f '' (Metric.closedBall (0 : E) 1), ‖G y - G_tilde y‖ ≤ 1:= by
       intro y hy
       by_cases hP :  ε < ‖y - c‖
       ·
@@ -415,17 +451,21 @@ theorem IoD2 (f : E → E)
           simp
         unfold G_tilde
         rw [hPhi]
+
         have hy_sigma1 : y ∈ sigma1 := ⟨hy, le_of_lt hP⟩
         have hy_sigma : y ∈ sigma := Or.inl hy_sigma1
+
+
         calc
           ‖G y - P' y‖ = ‖G y - (P y - v)‖ := rfl
           _ = ‖(G y - P y) + v‖ := by rw [sub_sub_eq_add_sub, add_sub_right_comm]
           _ ≤ ‖G y - P y‖ + ‖v‖ := norm_add_le _ _
           _ = ‖P y - G y‖ + ‖v‖ := by rw [norm_sub_rev]
-          _ < δ + ‖v‖ := add_lt_add_left (hP_bound y hy_sigma) ‖v‖
+          _ ≤ δ + ‖v‖ := by grw [hP_bound y hy_sigma]
           _ = ‖v‖ + δ := add_comm _ _
-          _ < δ + δ := add_lt_add_left hvnorm δ
+          _ ≤ δ + δ := by grw [hvnorm]
           _ = 2 * δ := Eq.symm (two_mul δ)
+          _ ≤ _ := by linarith
       ·
         simp only [not_lt] at hP
         unfold G_tilde
@@ -433,10 +473,43 @@ theorem IoD2 (f : E → E)
         have hpos : 0 < ‖y - c‖ := norm_pos_iff.mpr (sub_ne_zero.mpr (Ne.symm hy_neq_c))
         have hleft : 1 ≤ ε / ‖y - c‖ := (one_le_div hpos).mpr hP
 
-
-        have hPhi : Phi y = ε • y := by
+        have hPhi : Phi y = c + (ε / ‖y - c‖) • (y-c) := by
           unfold Phi
-          rw [max_eq_left _]
+          rwa [max_eq_left]
+
+
+
+        calc
+          ‖G y - P' (Phi y)‖
+            = ‖G y - (P (Phi y) - v)‖ := rfl
+          _ ≤ ‖(G y - P (Phi y)) + v‖ := by rw [sub_sub_eq_add_sub, add_sub_right_comm]
+          _ ≤ ‖G y - P (Phi y)‖ + ‖v‖ := norm_add_le _ _
+
+          -- _ ≤ ‖(G y : E)‖ + ‖P (Phi y)‖ + ‖v‖ := add_le_add (norm_sub_le (G y : E) (P (Phi y))) (le_refl ‖v‖)
+
+
+
+
+            -- apply abs_norm_sub_norm_le
+
+
+
+
+        --   unfold Phi
+        --   rw [max_eq_left _]
+
+        -- rw [hPhi]
+        -- dsimp [P']
+
+        -- specialize hP_bound (ε • y)
+
+
+
+
+        -- calc
+        --   ‖↑(G y) - P' (ε • y)‖
+
+
 
 
 

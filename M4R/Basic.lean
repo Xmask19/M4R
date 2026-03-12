@@ -477,6 +477,14 @@ theorem IoD2 (f : E → E)
           unfold Phi
           rwa [max_eq_left]
 
+        have hyimg : Phi y ∈ sigma2 := by
+          rw [hPhi]
+          dsimp [sigma2]
+          simp only [mem_sphere_iff_norm, add_sub_cancel_left]
+          sorry
+
+
+
 
 
         calc
@@ -484,6 +492,8 @@ theorem IoD2 (f : E → E)
             = ‖G y - (P (Phi y) - v)‖ := rfl
           _ ≤ ‖(G y - P (Phi y)) + v‖ := by rw [sub_sub_eq_add_sub, add_sub_right_comm]
           _ ≤ ‖G y - P (Phi y)‖ + ‖v‖ := norm_add_le _ _
+        sorry
+    sorry
 
           -- _ ≤ ‖(G y : E)‖ + ‖P (Phi y)‖ + ‖v‖ := add_le_add (norm_sub_le (G y : E) (P (Phi y))) (le_refl ‖v‖)
 
@@ -548,14 +558,6 @@ theorem IoD2 (f : E → E)
 
 
 
-
-
-
-
-
-
-
-
 theorem invariance_of_domain (f : E → E)
     (hf_cont : Continuous f) (hf_inj : Function.Injective f) : IsOpenMap f := by
   intro U hU
@@ -575,11 +577,7 @@ theorem invariance_of_domain (f : E → E)
   rcases hclosedball with ⟨ε, hε , hclosedball⟩
   let g := fun (v : E) => ε • v + x
   have hg_cont : Continuous g := ((continuous_const_smul ε).add continuous_const : Continuous g)
-  have hg_inj : Function.Injective g:= by
-    intro v1 v2 himeq
-    dsimp [g] at himeq
-    simp only [add_left_inj] at himeq
-    exact (smul_right_inj (by linarith)).mp himeq
+  have hg_inj : Function.Injective g:= by simp [Function.Injective, g, hε.ne']
   let e := f ∘ g
   have he_cont : Continuous e := Continuous.comp hf_cont hg_cont
   have he_inj : Function.Injective e := Function.Injective.comp hf_inj hg_inj

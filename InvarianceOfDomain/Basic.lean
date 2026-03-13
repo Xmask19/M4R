@@ -121,7 +121,10 @@ theorem invariance_of_domain_interior (f : E → E)
   -- As `f(0)` is not an interior point of `f(B^n)`, there exists a point `c ∈ ℝ^n` with `‖c - f(0)‖ < ε` not in `f(B^n)`
   let ε : ℝ := twoε /2
   have hε1 : ε > 0 := half_pos h2ε1
-  have hεeq : twoε = 2 * ε := by ring
+  have h2εeq : twoε = 2 * ε := by ring
+  have h0mem : (0:E) ∈ (Metric.closedBall 0 1) := by simp
+  have hdist := Set.mem_image_of_mem f h0mem
+  apply h2ε2 (f 0) at hdist
   have ⟨c, hc1, hc2⟩ : ∃ c, dist c (f 0) < ε ∧ c ∉ f '' Metric.closedBall 0 1 := by
     rw [mem_interior] at hnotinterior
     push_neg at hnotinterior
@@ -131,6 +134,25 @@ theorem invariance_of_domain_interior (f : E → E)
     rw [Set.not_subset] at hnotball
     rcases hnotball with ⟨c, hc1, hc2⟩
     refine ⟨c, ⟨Metric.mem_ball.mp hc1, (Set.mem_compl_iff (f '' Metric.closedBall 0 1) c).mp hc2⟩⟩
+  -- ‖G(y)‖≤0.1 whenever ‖y-c‖≤ε
+  have hG_small (y : E) (hy : y ∈ f '' Metric.closedBall 0 1) (h : ‖y - c‖ ≤ ε) : ‖(G y : E)‖ ≤ 0.1 := by
+    rw [dist_eq_norm] at hc1
+    have := le_of_lt hc1
+    have : ‖y - f 0‖ ≤ 2 * ε := calc
+      ‖y - f 0‖ = ‖(y - c) + (c - f 0)‖ := by simp
+      _≤ ‖y - c‖ + ‖c - f 0‖ := norm_add_le _ _
+      _ ≤ ε + ‖c - f 0‖ := add_le_add_left h ‖c - f 0‖
+      _ ≤ ε + ε := (add_le_add_iff_left ε).mpr this
+      _ = 2 * ε := by ring
+    rw [← h2εeq, ← dist_eq_norm, dist_comm ] at this
+    have h0 : (0 : E) ∈ Metric.closedBall 0 1 := Metric.mem_closedBall_comm.mp h0_mem
+    have hf0_image : f 0 ∈ f '' Metric.closedBall 0 1 := ⟨0, by simp [Metric.mem_closedBall, zero_le_one], rfl⟩
+    have := h2ε2 (f 0) hf0_image y hy this
+    rw [Subtype.dist_eq, hG0]  at this
+    simp only [dist_zero] at this
+    exact this
+
+
 
 
   let sigma1 : Set (E) := {y ∈ f '' Metric.closedBall 0 1 | ‖y - c‖ ≥ ε}

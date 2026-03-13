@@ -155,6 +155,7 @@ theorem invariance_of_domain_interior (f : E → E)
 
 
 
+
   let sigma1 : Set (E) := {y ∈ f '' Metric.closedBall 0 1 | ‖y - c‖ ≥ ε}
   let sigma2 : Set (E) := Metric.sphere c ε
   let sigma := sigma1 ∪ sigma2
@@ -251,21 +252,16 @@ theorem invariance_of_domain_interior (f : E → E)
   have h1  : 0 < n := (Module.finrank_pos_iff_of_free ℝ E).mpr hnontrivial
   have hn : n ≠ 0 := ne_zero_of_lt h1
   have hb := OrthonormalBasis.norm_eq_one b
-
   let coord_sigma (i : Fin n) : C(E, ℝ) :=
     { toFun := fun x => b.toBasis.equivFunL x i
       continuous_toFun := by fun_prop }
   have hcoord_diff (i : Fin n) : Differentiable ℝ (coord_sigma i) := by
     let proj_i : (Fin n → ℝ) →L[ℝ] ℝ := ContinuousLinearMap.proj i
     exact (proj_i.comp (b.toBasis.equivFunL : E →L[ℝ] (Fin n → ℝ))).differentiable
-
-
   let generator_sigma : Set C(E, ℝ) := Set.range coord_sigma
-
   have hgen_diff : ∀ f ∈ generator_sigma, Differentiable ℝ f := by
     rintro _ ⟨i, rfl⟩
     exact hcoord_diff i
-
   let A_sigma : Subalgebra ℝ C(E, ℝ) := Algebra.adjoin ℝ generator_sigma
   have hA_diff : ∀ f ∈ A_sigma, Differentiable ℝ f := by
     let D : Subalgebra ℝ C(E, ℝ) :=
@@ -278,7 +274,6 @@ theorem invariance_of_domain_interior (f : E → E)
     have : generator_sigma ⊆ D := hgen_diff
     have : A_sigma ≤ D := Algebra.adjoin_le this
     exact fun f hf => this hf
-
   have sep_sigma : A_sigma.SeparatesPoints := by
     intro x y hxy
     have hequiv: b.toBasis.equivFunL x ≠ b.toBasis.equivFunL y := by simpa
@@ -311,7 +306,7 @@ theorem invariance_of_domain_interior (f : E → E)
       rw [l.apply_symm_apply w, map_zero] at this
       exact hw this
   let C := ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖
-  rcases hδ with ⟨δ, hδ1, hδ2⟩
+  rcases hδ with ⟨δ, hδ1, ⟨hδ2, hδ3⟩⟩
   let ε' := δ / (2 * C)
   have hε' : 0 < ε' := by
     apply div_pos
@@ -367,7 +362,7 @@ theorem invariance_of_domain_interior (f : E → E)
   have sigma1_subset_sigma : sigma1 ⊆ sigma := Set.subset_union_left
   have h0_notin_image : (0 : E) ∉ P '' sigma1 := by
     rintro ⟨y, hy, h⟩
-    have hG : ‖(G y :E)‖ ≥ δ := (hδ2.2 y hy)
+    have hG : ‖(G y :E)‖ ≥ δ := (hδ3 y hy)
     have hP : ‖P y - G y‖ < δ := hP_bound y (sigma1_subset_sigma hy)
     rw [h] at hP
     have : ‖(G y : E)‖ = ‖G y - P y‖ := by rw [h, sub_zero]
@@ -476,12 +471,36 @@ theorem invariance_of_domain_interior (f : E → E)
         dsimp [sigma2]
         have : y - c ≠ 0 := sub_ne_zero_of_ne (Ne.symm hy_neq_c)
         simp [mem_sphere_iff_norm, add_sub_cancel_left, norm_smul, this, hε1.le]
-
+      specialize hG_small y hy hP
+      have h_phi_in_sigma : Phi y ∈ sigma := Or.inr hyimg
+      have hP_approx : ‖P (Phi y) - G (Phi y)‖ < δ := hP_bound (Phi y) h_phi_in_sigma
+      have hP_approx_le : ‖P (Phi y)‖ ≤ ‖(G (Phi y) : E)‖ + δ := by
+        have h := le_of_lt hP_approx
+        calc
+          ‖P (Phi y)‖ = ‖G (Phi y) + (P (Phi y) - G (Phi y))‖ := by simp
+          _ ≤ ‖(G (Phi y) : E)‖ + ‖P (Phi y) - G (Phi y)‖ := norm_add_le _ _
+          _ ≤ ‖(G (Phi y) : E)‖ + δ := add_le_add (le_refl ‖(G (Phi y) : E)‖) (le_of_lt hP_approx)
       calc
         ‖G y - P' (Phi y)‖
           = ‖G y - (P (Phi y) - v)‖ := rfl
         _ ≤ ‖(G y - P (Phi y)) + v‖ := by rw [sub_sub_eq_add_sub, add_sub_right_comm]
         _ ≤ ‖G y - P (Phi y)‖ + ‖v‖ := norm_add_le _ _
+        _ ≤ ‖(G y : E)‖ + ‖P (Phi y)‖ + ‖v‖ := by grw [norm_sub_le]
+        _ = ‖(G y : E)‖ + (‖P (Phi y)‖ + ‖v‖) := by rw [add_assoc]
+        _ ≤ 0.1 + (‖P (Phi y)‖ + ‖v‖) := add_le_add_left _ _
+        _ ≤ 0.1 + (‖(G (Phi y) : E)‖ + δ) + ‖v‖ := add_le_add _ _
+        _ ≤ 0.1 + (‖(G (Phi y) : E)‖ + δ) + δ := add_le_add_right _ _
+
+
+
+        -- _ ≤ 0.1 + (‖(G (Phi y): E)‖ + δ) + ‖v‖ := by simp
+        -- add_le_add (add_le_add_left (le_of_lt (hP_bound (Phi y) h_phi_in_sigma)) _) (le_refl ‖v‖)
+
+
+
+        -- _ ≤ ‖0.1‖ + ‖P (Phi y)‖ + ‖v‖ := by
+
+
       sorry
 
   sorry

@@ -104,27 +104,39 @@ theorem invariance_of_domain_interior (f : E → E)
     simpa [Set.MapsTo.val_restrict_apply, sub_eq_self] using (AddOpposite.op_eq_zero_iff (Gtilde (f x))).mp (congrArg AddOpposite.op hx)
   -- By way of contradiction, we assume that f(0) is not an interior point of f(B^n) and construct a Gtilde as in the above lemma to derive a contradiction.
   by_contra hnotinterior
-  -- `G` is continuous on `f(B^n)`
-  have hGconton := Continuous.continuousOn (ContinuousMap.continuous G) (s := f '' Metric.closedBall 0 1)
-  -- `f(B^n)` is compact
-  have himgcompact := IsCompact.image_of_continuousOn (isCompact_closedBall 0 1) hf_cont
-  -- By Heine-Cantor, `G` is uniformly continuous on `f(B^n`)
-  have hGuniformcont := IsCompact.uniformContinuousOn_of_continuous himgcompact hGconton
-  rw [Metric.uniformContinuousOn_iff_le] at hGuniformcont
-  -- By picking `ε > 0`  small enough, we can ensure `‖G(y)‖ ≤ 0.1` whenever `y ∈ ℝ^n` and `‖y - f(0)‖ ≤ 2ε`
+  have hG_cont_E : Continuous (fun x => (G x : E)) := continuous_subtype_val.comp (ContinuousMap.continuous G)
+  -- -- G is continuous at f 0
+  -- have hG_cont_at_f0 := hG_cont_E.continuousAt (f 0)
+
+  have hG_cont_at_f0 : ContinuousAt (fun x => (G x : E)) (f 0) := Continuous.continuousAt hG_cont_E
+  rw [Metric.continuousAt_iff] at hG_cont_at_f0
+  specialize hG_cont_at_f0 0.1 (by norm_num)
+  rcases hG_cont_at_f0 with ⟨twoε, h2εpos, h2ε1⟩
+
+  -- have hG_cont_at_f0 := ContinuousAt (fun x => (G x : E)) (f 0)
+  -- rw [Metric.tendsto_nhds_nhds] at hG_cont_at_f0
+  -- specialize hG_cont_at_f0 0.1 (by norm_num)
+  -- rcases hG_cont_at_f0 with ⟨δ, hδ_pos, hδ⟩
+
+  -- -- G is continuous on the whole space, so in particular at f 0
+  -- have hG_cont_at_f0 := ContinuousAt (G : E → E) (f 0)
+  -- -- `G` is continuous on `f(B^n)`
+  -- have hGconton := Continuous.continuousOn (ContinuousMap.continuous G) (s := f '' Metric.closedBall 0 1)
+  -- -- `f(B^n)` is compact
+  -- have himgcompact := IsCompact.image_of_continuousOn (isCompact_closedBall 0 1) hf_cont
+  -- -- By Heine-Cantor, `G` is uniformly continuous on `f(B^n`)
+  -- have hGuniformcont := IsCompact.uniformContinuousOn_of_continuous himgcompact hGconton
+  -- rw [Metric.uniformContinuousOn_iff_le] at hGuniformcont
+  -- -- By picking `ε > 0`  small enough, we can ensure `‖G(y)‖ ≤ 0.1` whenever `y ∈ ℝ^n` and `‖y - f(0)‖ ≤ 2ε`
   have h0 : 0.1 > (0 : ℝ) := by norm_num
-  apply hGuniformcont at h0
-  rcases h0 with ⟨twoε , h2ε1, h2ε2⟩
-  have h0_mem : (0:E) ∈ (Metric.closedBall 0 1) := by simp
-  have hG_small := Set.mem_image_of_mem f h0_mem
-  apply h2ε2 (f 0) at hG_small
+
   -- As `f(0)` is not an interior point of `f(B^n)`, there exists a point `c ∈ ℝ^n` with `‖c - f(0)‖ < ε` not in `f(B^n)`
   let ε : ℝ := twoε /2
-  have hε1 : ε > 0 := half_pos h2ε1
+  have hε1 : ε > 0 := half_pos h2εpos
   have h2εeq : twoε = 2 * ε := by ring
   have h0mem : (0:E) ∈ (Metric.closedBall 0 1) := by simp
   have hdist := Set.mem_image_of_mem f h0mem
-  apply h2ε2 (f 0) at hdist
+  -- apply h2ε1 (f 0) at hdist
   have ⟨c, hc1, hc2⟩ : ∃ c, dist c (f 0) < ε ∧ c ∉ f '' Metric.closedBall 0 1 := by
     rw [mem_interior] at hnotinterior
     push_neg at hnotinterior
@@ -135,25 +147,23 @@ theorem invariance_of_domain_interior (f : E → E)
     rcases hnotball with ⟨c, hc1, hc2⟩
     refine ⟨c, ⟨Metric.mem_ball.mp hc1, (Set.mem_compl_iff (f '' Metric.closedBall 0 1) c).mp hc2⟩⟩
   -- ‖G(y)‖≤0.1 whenever ‖y-c‖≤ε
-  have hG_small (y : E) (hy : y ∈ f '' Metric.closedBall 0 1) (h : ‖y - c‖ ≤ ε) : ‖(G y : E)‖ ≤ 0.1 := by
+
+  have hG_small (y : E) (h : ‖y - c‖ ≤ ε) : ‖(G y : E)‖ ≤ 0.1 := by
     rw [dist_eq_norm] at hc1
     have := le_of_lt hc1
-    have : ‖y - f 0‖ ≤ 2 * ε := calc
+    have : ‖y - f 0‖ < 2 * ε := calc
       ‖y - f 0‖ = ‖(y - c) + (c - f 0)‖ := by simp
       _≤ ‖y - c‖ + ‖c - f 0‖ := norm_add_le _ _
-      _ ≤ ε + ‖c - f 0‖ := add_le_add_left h ‖c - f 0‖
-      _ ≤ ε + ε := (add_le_add_iff_left ε).mpr this
+      _ < ε + ε := by linarith
       _ = 2 * ε := by ring
-    rw [← h2εeq, ← dist_eq_norm, dist_comm ] at this
-    have h0 : (0 : E) ∈ Metric.closedBall 0 1 := Metric.mem_closedBall_comm.mp h0_mem
+    rw [← h2εeq, ← dist_eq_norm ] at this
+    have h0 : (0 : E) ∈ Metric.closedBall 0 1 := Metric.mem_closedBall_comm.mp h0mem
     have hf0_image : f 0 ∈ f '' Metric.closedBall 0 1 := ⟨0, by simp [Metric.mem_closedBall, zero_le_one], rfl⟩
-    have := h2ε2 (f 0) hf0_image y hy this
-    rw [Subtype.dist_eq, hG0]  at this
-    simp only [dist_zero] at this
-    exact this
-
-
-
+    have := h2ε1 this
+    rw [hG0]  at this
+    simp only [dist_zero_right] at this
+    exact le_of_lt this
+  have himgcompact := IsCompact.image_of_continuousOn (isCompact_closedBall 0 1) hf_cont
 
 
   let sigma1 : Set (E) := {y ∈ f '' Metric.closedBall 0 1 | ‖y - c‖ ≥ ε}
@@ -197,6 +207,14 @@ theorem invariance_of_domain_interior (f : E → E)
       simp only [_root_.sub_self, norm_zero] at h3
       exact hε1.ne h3
   let Phi : (E) → (E) := fun y => c + (max (ε / ‖y - c‖) (1 : ℝ)) • (y - c)
+  have hPhiimg (y : E) (hy : y ∈ f '' Metric.closedBall 0 1) : Phi y ∈ sigma := by
+    by_cases h : ε < ‖y - c‖
+    · left
+      simp only [Phi]
+      ring_nf
+
+
+
   have hPhicont : ContinuousOn Phi (f '' Metric.closedBall 0 1) := by
     apply ContinuousOn.add continuousOn_const ?_
     apply ContinuousOn.smul ?_ ?_
@@ -230,6 +248,7 @@ theorem invariance_of_domain_interior (f : E → E)
     linarith
   let normG : E → ℝ := fun y => ‖(G y : E)‖
   -- have hgnormconton : ContinuousOn normG (f '' Metric.closedBall 0 1) := ContinuousOn.norm (continuous_subtype_val.comp_continuousOn hGconton)
+  have hGconton := Continuous.continuousOn (ContinuousMap.continuous G) (s := f '' Metric.closedBall 0 1)
   have hgnormconton1 : ContinuousOn normG sigma1 := ContinuousOn.norm (continuous_subtype_val.comp_continuousOn (ContinuousOn.mono hGconton (Set.sep_subset (f '' Metric.closedBall 0 1) fun x ↦ ‖x - c‖ ≥ ε)))
   have hδ : ∃ (δ : ℝ), 0 < δ ∧ δ < 0.1 ∧ ∀ y ∈ sigma1, δ ≤ ‖(G y : E)‖ := by
     by_cases hP : sigma1.Nonempty
@@ -432,6 +451,7 @@ theorem invariance_of_domain_interior (f : E → E)
     apply Continuous.comp ?_ ?_
     · exact ContinuousMap.continuous P'
     · exact ContinuousOn.restrict hPhicont
+  -- have hG_tilde : (0 : E) ∉ G_tilde (f '' Metric.closedBall 0 1) := by sorry
   specialize hStability_of_zero G_tilde hG_tilde_cont
   have h7 : ∀ y ∈ f '' (Metric.closedBall (0 : E) 1), ‖G y - G_tilde y‖ ≤ 1:= by
     intro y hy
@@ -466,12 +486,12 @@ theorem invariance_of_domain_interior (f : E → E)
       have hPhi : Phi y = c + (ε / ‖y - c‖) • (y-c) := by
         unfold Phi
         rwa [max_eq_left]
-      have hyimg : Phi y ∈ sigma2 := by
+      have hyimg : Phi y ∈ Metric.sphere c ε := by
         rw [hPhi]
-        dsimp [sigma2]
         have : y - c ≠ 0 := sub_ne_zero_of_ne (Ne.symm hy_neq_c)
         simp [mem_sphere_iff_norm, add_sub_cancel_left, norm_smul, this, hε1.le]
-      specialize hG_small y hy hP
+      have hPhi_y : ‖Phi y - c‖ = ε := mem_sphere_iff_norm.mp hyimg
+      have := hG_small (Phi y)
       have h_phi_in_sigma : Phi y ∈ sigma := Or.inr hyimg
       have hP_approx : ‖P (Phi y) - G (Phi y)‖ < δ := hP_bound (Phi y) h_phi_in_sigma
       have hP_approx_le : ‖P (Phi y)‖ ≤ ‖(G (Phi y) : E)‖ + δ := by
@@ -480,35 +500,38 @@ theorem invariance_of_domain_interior (f : E → E)
           ‖P (Phi y)‖ = ‖G (Phi y) + (P (Phi y) - G (Phi y))‖ := by simp
           _ ≤ ‖(G (Phi y) : E)‖ + ‖P (Phi y) - G (Phi y)‖ := norm_add_le _ _
           _ ≤ ‖(G (Phi y) : E)‖ + δ := add_le_add (le_refl ‖(G (Phi y) : E)‖) (le_of_lt hP_approx)
-      -- have : 0.1 ≤ 0.1 := self_le
       have hv_le : ‖v‖ ≤ 0.1 := by linarith [hvnorm, hδ2]
-      -- have h_sum_le : ‖P (Phi y)‖ + ‖v‖ ≤ (‖(G (Phi y) :E)‖ + δ) + ‖v‖ := add_le_add_right hP_le ‖v‖
+      have hG_phi_small : ‖(G (Phi y) : E)‖ ≤ 0.1 := by
+        rw [dist_eq_norm] at hc1
+        have := le_of_lt hc1
+        have : ‖Phi y - f 0‖ < 2 * ε := calc
+          ‖Phi y - f 0‖ = ‖(Phi y - c) + (c - f 0)‖ := by simp
+          _≤ ‖Phi y - c‖ + ‖c - f 0‖ := norm_add_le _ _
+          _ = ε + ‖c - f 0‖ := by rw [hPhi_y]
+          _ < ε + ε := add_lt_add_right hc1 ε
+          _ = 2 * ε := by ring
+        rw [← h2εeq, ← dist_eq_norm ] at this
+        have h0 : (0 : E) ∈ Metric.closedBall 0 1 := Metric.mem_closedBall_comm.mp h0mem
+        have hf0_image : f 0 ∈ f '' Metric.closedBall 0 1 := ⟨0, by simp [Metric.mem_closedBall, zero_le_one], rfl⟩
+        have := h2ε1 this
+        rw [hG0]  at this
+        simp only [dist_zero_right] at this
+        exact le_of_lt this
+      specialize hG_small y hP
       calc
         ‖G y - P' (Phi y)‖
           = ‖G y - (P (Phi y) - v)‖ := rfl
         _ ≤ ‖(G y - P (Phi y)) + v‖ := by rw [sub_sub_eq_add_sub, add_sub_right_comm]
         _ ≤ ‖G y - P (Phi y)‖ + ‖v‖ := norm_add_le _ _
         _ ≤ ‖(G y : E)‖ + ‖P (Phi y)‖ + ‖v‖ := by grw [norm_sub_le]
-        _ ≤ ‖(G y : E)‖ + ‖(G (Phi y) : E)‖ + 0.2 := by linarith
-        -- _ ≤ 0.1 + ‖P (Phi y)‖ + 0.1 := by linarith
-        -- _ = ‖(G y : E)‖ + (‖P (Phi y)‖ + ‖v‖) := by rw [add_assoc]
-        -- _ ≤ 0.1 + (‖P (Phi y)‖ + ‖v‖) := add_le_add_left (hG_small y hy hP) (‖P (Phi y)‖ + ‖v‖)
+        _ ≤ 1 := by linarith
 
-        -- _ ≤ 0.1 + (‖(G (Phi y) : E)‖ + δ) + ‖v‖ := add_le_add (le_refl 0.1) h_sum_le
-        -- _ ≤ 0.1 + (‖(G (Phi y) : E)‖ + δ) + δ := add_le_add_right _ _
+  have ⟨y, hy⟩ := hStability_of_zero h7
 
 
 
 
-        -- _ ≤ 0.1 + (‖(G (Phi y): E)‖ + δ) + ‖v‖ := by simp
-        -- add_le_add (add_le_add_left (le_of_lt (hP_bound (Phi y) h_phi_in_sigma)) _) (le_refl ‖v‖)
 
-
-
-        -- _ ≤ ‖0.1‖ + ‖P (Phi y)‖ + ‖v‖ := by
-
-
-      sorry
 
   sorry
 

@@ -223,7 +223,7 @@ theorem invariance_of_domain_interior (f : E → E)
       exact congr_arg Subtype.val (FEquiv.symm.injective h)
     have hyeq : y = f 0 := by
       have heq : G y = G (f 0) := SetCoe.ext (Eq.trans hGeq hG0.symm)
-      apply hG_inj_on_image ((Set.mem_image f (Metric.closedBall 0 1) y).mpr hy.1) (Set.mem_image_of_mem f h1) at heq
+      apply hG_inj_on_image ((Set.mem_image f (Metric.closedBall 0 1) y).mpr hy.1) (Set.mem_image_of_mem f h0mem) at heq
       assumption
     rw [Set.mem_sep_iff, hyeq] at hy
     rw [dist_eq_norm, ← norm_neg, neg_sub] at hc1
@@ -480,16 +480,23 @@ theorem invariance_of_domain_interior (f : E → E)
           ‖P (Phi y)‖ = ‖G (Phi y) + (P (Phi y) - G (Phi y))‖ := by simp
           _ ≤ ‖(G (Phi y) : E)‖ + ‖P (Phi y) - G (Phi y)‖ := norm_add_le _ _
           _ ≤ ‖(G (Phi y) : E)‖ + δ := add_le_add (le_refl ‖(G (Phi y) : E)‖) (le_of_lt hP_approx)
+      -- have : 0.1 ≤ 0.1 := self_le
+      have hv_le : ‖v‖ ≤ 0.1 := by linarith [hvnorm, hδ2]
+      -- have h_sum_le : ‖P (Phi y)‖ + ‖v‖ ≤ (‖(G (Phi y) :E)‖ + δ) + ‖v‖ := add_le_add_right hP_le ‖v‖
       calc
         ‖G y - P' (Phi y)‖
           = ‖G y - (P (Phi y) - v)‖ := rfl
         _ ≤ ‖(G y - P (Phi y)) + v‖ := by rw [sub_sub_eq_add_sub, add_sub_right_comm]
         _ ≤ ‖G y - P (Phi y)‖ + ‖v‖ := norm_add_le _ _
         _ ≤ ‖(G y : E)‖ + ‖P (Phi y)‖ + ‖v‖ := by grw [norm_sub_le]
-        _ = ‖(G y : E)‖ + (‖P (Phi y)‖ + ‖v‖) := by rw [add_assoc]
-        _ ≤ 0.1 + (‖P (Phi y)‖ + ‖v‖) := add_le_add_left _ _
-        _ ≤ 0.1 + (‖(G (Phi y) : E)‖ + δ) + ‖v‖ := add_le_add _ _
-        _ ≤ 0.1 + (‖(G (Phi y) : E)‖ + δ) + δ := add_le_add_right _ _
+        _ ≤ ‖(G y : E)‖ + ‖(G (Phi y) : E)‖ + 0.2 := by linarith
+        -- _ ≤ 0.1 + ‖P (Phi y)‖ + 0.1 := by linarith
+        -- _ = ‖(G y : E)‖ + (‖P (Phi y)‖ + ‖v‖) := by rw [add_assoc]
+        -- _ ≤ 0.1 + (‖P (Phi y)‖ + ‖v‖) := add_le_add_left (hG_small y hy hP) (‖P (Phi y)‖ + ‖v‖)
+
+        -- _ ≤ 0.1 + (‖(G (Phi y) : E)‖ + δ) + ‖v‖ := add_le_add (le_refl 0.1) h_sum_le
+        -- _ ≤ 0.1 + (‖(G (Phi y) : E)‖ + δ) + δ := add_le_add_right _ _
+
 
 
 

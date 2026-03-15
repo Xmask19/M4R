@@ -437,10 +437,21 @@ theorem invariance_of_domain_interior (f : E → E)
           rcases h1 with ⟨x, hx, rfl⟩
           exact hsigma1nonempty ⟨x, hx⟩
         · grind
-  have h6: Continuous fun y => P y - v := by fun_prop
   let P' : C(E, E) :=
     { toFun := fun y => P y - v,
       continuous_toFun:= by fun_prop}
+  have hv_notin_sigma : v ∉ P '' sigma := by
+    rw [Set.image_union]
+    intro h
+    rcases h with (h1 | h2)
+    · exact hv1 h1
+    · exact hv2 h2
+  have hP'_nonvanishing_sigma : ∀ y ∈ sigma, P' y ≠ 0 := by
+    intro y hy
+    dsimp [P']
+    intro h_eq
+    have : P y = v := sub_eq_zero.mp h_eq
+    exact hv_notin_sigma ⟨y, hy, this⟩
   let G_tilde : E → E := fun y => P' (Phi y)
   have hG_tilde_cont : ContinuousOn G_tilde (f '' Metric.closedBall 0 1):= by
     unfold G_tilde
@@ -449,7 +460,7 @@ theorem invariance_of_domain_interior (f : E → E)
     · exact ContinuousMap.continuous P'
     · exact ContinuousOn.restrict hPhicont
   specialize hStability_of_zero G_tilde hG_tilde_cont
-  have h7 : ∀ y ∈ f '' (Metric.closedBall (0 : E) 1), ‖G y - G_tilde y‖ ≤ 1:= by
+  have h7 : ∀ y ∈ f '' (Metric.closedBall (0 : E) 1), ‖G y - G_tilde y‖ ≤ 1 := by
     intro y hy
     -- There are two possible cases for the norm of y - c
     by_cases hP :  ε < ‖y - c‖
@@ -476,12 +487,10 @@ theorem invariance_of_domain_interior (f : E → E)
         _ ≤ _ := by linarith
     · simp only [not_lt] at hP
       unfold G_tilde
-
       have hy_neq_c : c ≠ y := by
         by_contra h
         rw [← h] at hy
         exact hc2 hy
-
       have hpos : 0 < ‖y - c‖ := norm_pos_iff.mpr (sub_ne_zero.mpr (Ne.symm hy_neq_c))
       have hleft : 1 ≤ ε / ‖y - c‖ := (one_le_div hpos).mpr hP
       have hPhi : Phi y = c + (ε / ‖y - c‖) • (y - c) := by
@@ -525,9 +534,15 @@ theorem invariance_of_domain_interior (f : E → E)
         _ ≤ ‖(G y - P (Phi y)) + v‖ := by rw [sub_sub_eq_add_sub, add_sub_right_comm]
         _ ≤ ‖G y - P (Phi y)‖ + ‖v‖ := norm_add_le _ _
         _ ≤ ‖(G y : E)‖ + ‖P (Phi y)‖ + ‖v‖ := by grw [norm_sub_le]
-        _ ≤ 1 := by linarith
-  have ⟨y, hy⟩ := hStability_of_zero h7
-  sorry
+        _ ≤ _ := by linarith
+  have h := hStability_of_zero (fun y hy => le_trans (h7 y hy) (by norm_num))
+  rcases h with ⟨y, hy, hzero⟩
+  have hG_tilde_nonzero : ∀ y ∈ f '' Metric.closedBall 0 1, (P' ∘ Phi) y ≠ 0 :=
+  fun y hy => hP'_nonvanishing_sigma (Phi y) (hPhiimg y hy)
+
+  have ⟨y, hy1, hy2⟩ := hStability_of_zero h7
+  exact hG_tilde_nonzero y hy1 hy2
+
 
 
 theorem invariance_of_domain_open_map (f : E → E)

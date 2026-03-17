@@ -7,7 +7,6 @@ import Mathlib.LinearAlgebra.Basis.VectorSpace
 import Mathlib.Analysis.InnerProductSpace.Basic
 import Mathlib.Topology.ContinuousMap.StoneWeierstrass
 import Mathlib.LinearAlgebra.FiniteDimensional.Defs
-import Mathlib.Data.NNReal.Defs
 import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 import Mathlib.MeasureTheory.Measure.Haar.Basic
 import Mathlib.Analysis.InnerProductSpace.PiL2
@@ -16,17 +15,22 @@ import Mathlib.MeasureTheory.Measure.Haar.InnerProductSpace
 import Mathlib.MeasureTheory.Measure.Lebesgue.EqHaar
 import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
 import Mathlib.MeasureTheory.Function.Jacobian
+
 variable {E} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
 
 open MeasureTheory MeasureTheory.Measure Metric
 set_option linter.unnecessarySimpa false
 
-theorem brouwer_fixed_point (f : (closedBall (0 : E) 1) → (closedBall 0 1))
-    (hf : Continuous f) : ∃ x, f x = x := by sorry
+variable (E) in class BrouwerFixedPoint : Prop where
+  brouwer_fixed_point (f : (closedBall (0 : E) 1) → (closedBall 0 1))
+    (hf : Continuous f) : ∃ x, f x = x
+
+variable [BrouwerFixedPoint E]
+
+
 /-- Let `B^n` be the closed unit ball (closedBall 0 1).
 Let `f : B^n → ℝ^n` be an continuous injective map.
 Then `f(0)` lies in the interior of `f(B^n)`. -/
-
 theorem invariance_of_domain_interior (f : E → E)
     (hf_cont : ContinuousOn f (closedBall 0 1)) (hf_inj : Set.InjOn f (closedBall 0 1))
     : f 0 ∈ interior (f ''(closedBall 0 1)) := by
@@ -163,57 +167,54 @@ theorem invariance_of_domain_interior (f : E → E)
     have himgcompact := IsCompact.image_of_continuousOn (isCompact_closedBall 0 1) hf_cont
     exact ⟨(IsClosed.and hballimageclosed ({isOpen_compl := hopen })), Bornology.IsBounded.subset
     (IsCompact.isBounded himgcompact) (Set.sep_subset (f '' closedBall 0 1) fun x ↦ ‖x - c‖ ≥ ε)⟩
-  -- It remains to be shown that `Σ₂` is compact, which follows from it being a sphere
+  -- It remains to be shown that `Σ₂` is compact, which follows from it being a sphere.
   have hsigmacompact : IsCompact sigma := IsCompact.union hsigma1compact (isCompact_sphere c ε)
-  -- Let `Φ` be the function `Φ(y) := max(ε / ‖y - c‖, 1)) * (y - c)`
+  -- Let `Φ` be the function `Φ(y) := max(ε / ‖y - c‖, 1)) * (y - c)`.
   let Phi : (E) → (E) := fun y => c + (max (ε / ‖y - c‖) (1 : ℝ)) • (y - c)
+  -- The image of `f(B^n)` under `Φ` is `Σ`.
   have hPhiimg (y : E) (hy : y ∈ f '' closedBall 0 1) : Phi y ∈ sigma := by
     by_cases h : ε < ‖y - c‖
+    -- If `ε < ‖y - c‖`, then `Φ(y) ∈ Σ₁`.
     · left
-      -- copy pasted
-      have hPhi : Phi y = y := by
-        unfold Phi
-        have hright : ε / ‖y - c‖ < 1 := by
-          have hyc : 0 < ‖y - c‖ := by linarith
-          rwa [div_lt_one hyc]
-        rw [max_eq_right_of_lt hright]
-        simp
-      rw [hPhi, Set.mem_sep_iff]
-      constructor
-      · exact hy
-      · exact le_of_lt h
+      unfold Phi
+      have hyc : 0 < ‖y - c‖ := by linarith
+      have hright : ε / ‖y - c‖ < 1 := by
+        rwa [div_lt_one hyc]
+      simp only [max_eq_right_of_lt hright, one_smul, add_sub_cancel]
+      exact ⟨hy, le_of_lt h⟩
+    -- If `ε < ‖y - c‖`, then `Φ(y) ∈ Σ₂`.
     · right
       simp only [not_lt] at h
       have hy_neq_c : c ≠ y := by
         by_contra h
         rw [← h] at hy
         exact hc2 hy
-      have hpos : 0 < ‖y - c‖ := norm_pos_iff.mpr (sub_ne_zero.mpr (Ne.symm hy_neq_c))
-      have hleft : 1 ≤ ε / ‖y - c‖ := (one_le_div hpos).mpr h
+      have hleft : 1 ≤ ε / ‖y - c‖ :=
+      (one_le_div (norm_pos_iff.mpr (sub_ne_zero.mpr (Ne.symm hy_neq_c)))).mpr h
       have hPhi : Phi y = c + (ε / ‖y - c‖) • (y - c) := by
         unfold Phi
         rwa [max_eq_left]
-      have hyimg : Phi y ∈ sphere c ε := by
-        rw [hPhi]
-        have : y - c ≠ 0 := sub_ne_zero_of_ne (Ne.symm hy_neq_c)
-        simp [mem_sphere_iff_norm, add_sub_cancel_left, norm_smul, this, hε1.le]
-      exact hyimg
+      rw [hPhi]
+      unfold sigma2
+      simp [norm_smul, (sub_ne_zero_of_ne (Ne.symm hy_neq_c)), hε1.le]
+  -- `Φ` is continuous.
   have hPhicont : ContinuousOn Phi (f '' closedBall 0 1) := by
-    apply ContinuousOn.add continuousOn_const ?_
-    apply ContinuousOn.smul ?_ ?_
-    · rw [continuousOn_iff_continuous_restrict]
-      apply Continuous.max ((Continuous.div continuous_const (Continuous.norm (Continuous.sub continuous_subtype_val continuous_const))) ?_) continuous_const
-      intro x
-      simp only [ne_eq, norm_eq_zero]
-      by_contra hx
-      rw [sub_eq_zero] at hx
-      subst hx
-      simp_all only [ Subtype.coe_prop, not_true_eq_false]
-    · apply ContinuousOn.sub (continuousOn_id' (f '' closedBall 0 1)) continuousOn_const
+    refine ContinuousOn.add continuousOn_const ?_
+    refine ContinuousOn.smul ?_
+      (ContinuousOn.sub (continuousOn_id' (f '' closedBall 0 1)) continuousOn_const)
+    rw [continuousOn_iff_continuous_restrict]
+    refine Continuous.max ((Continuous.div continuous_const (Continuous.norm
+    (Continuous.sub continuous_subtype_val continuous_const))) ?_) continuous_const
+    intro x
+    simp only [ne_eq, norm_eq_zero]
+    by_contra hx
+    rw [sub_eq_zero] at hx
+    subst hx
+    simp_all only [Subtype.coe_prop, not_true_eq_false]
+  -- By construction, `G` is non-zero on `Σ₁`
   have hGavoids : ∀ y ∈ sigma1, G y ≠ (0 : (E)) := by
     intro y hy
     by_contra hGeq
-    -- have hGinjective : Function.Injective ((f '' closedBall 0 1).restrict G)  := by
     have hG_inj_on_image : Set.InjOn G (f '' closedBall 0 1) := by
       intro x hx y hy h
       have hx_eq : G x = FInvCmap ⟨x, hx⟩ := by
@@ -224,14 +225,22 @@ theorem invariance_of_domain_interior (f : E → E)
       exact congr_arg Subtype.val (FEquiv.symm.injective h)
     have hyeq : y = f 0 := by
       have heq : G y = G (f 0) := SetCoe.ext (Eq.trans hGeq hG0.symm)
-      apply hG_inj_on_image ((Set.mem_image f (closedBall 0 1) y).mpr hy.1) (Set.mem_image_of_mem f (by simp)) at heq
+      apply hG_inj_on_image ((Set.mem_image f (closedBall 0 1) y).mpr hy.1)
+        (Set.mem_image_of_mem f (by simp)) at heq
       assumption
     rw [Set.mem_sep_iff, hyeq] at hy
     rw [dist_eq_norm, ← norm_neg, neg_sub] at hc1
     linarith
+  -- The norm of `G` is continuous on `Σ₁`
   let normG : E → ℝ := fun y => ‖(G y : E)‖
-  have hGconton := Continuous.continuousOn (ContinuousMap.continuous G) (s := f '' closedBall 0 1)
-  have hgnormconton1 : ContinuousOn normG sigma1 := ContinuousOn.norm (continuous_subtype_val.comp_continuousOn (ContinuousOn.mono hGconton (Set.sep_subset (f '' closedBall 0 1) fun x ↦ ‖x - c‖ ≥ ε)))
+  have hGconton := Continuous.continuousOn (ContinuousMap.continuous G)
+    (s := f '' closedBall 0 1)
+  have hgnormconton1 : ContinuousOn normG sigma1 :=
+    ContinuousOn.norm (continuous_subtype_val.comp_continuousOn
+    (ContinuousOn.mono hGconton (Set.sep_subset (f '' closedBall 0 1)
+    fun x ↦ ‖x - c‖ ≥ ε)))
+  -- As `Σ₁` is compact, `G` is bounded below on `Σ₁` by some `δ > 0`.
+  -- We can shrink `δ` to assume `δ < 0.1`.
   have hδ : ∃ (δ : ℝ), 0 < δ ∧ δ < 0.1 ∧ ∀ y ∈ sigma1, δ ≤ ‖(G y : E)‖ := by
     by_cases hP : sigma1.Nonempty
     · have ⟨z, hz, hmin⟩ := IsCompact.exists_isMinOn hsigma1compact hP hgnormconton1
@@ -246,17 +255,18 @@ theorem invariance_of_domain_interior (f : E → E)
           _ ≥ δ := min_le_left _ _
       use δ
     · exact ⟨0.05, ⟨by norm_num, ⟨by norm_num, fun y hy ↦ False.elim (hP ⟨y, hy⟩)⟩⟩⟩
+  -- Take the standard orthonormal basis
   let b := stdOrthonormalBasis ℝ E
   let n := Module.finrank ℝ E
-  have h1  : 0 < n := (Module.finrank_pos_iff_of_free ℝ E).mpr hnontrivial
-  have hn : n ≠ 0 := ne_zero_of_lt h1
-  have hb := OrthonormalBasis.norm_eq_one b
+  -- We construct the subalgebra of polynomials from `ℝ^n` to `ℝ` and show they are differentiable
+  -- Projecting onto one of the axes is continuous and differentiable
   let coord_sigma (i : Fin n) : C(E, ℝ) :=
     { toFun := fun x => b.toBasis.equivFunL x i
       continuous_toFun := by fun_prop }
   have hcoord_diff (i : Fin n) : Differentiable ℝ (coord_sigma i) := by
     let proj_i : (Fin n → ℝ) →L[ℝ] ℝ := ContinuousLinearMap.proj i
     exact (proj_i.comp (b.toBasis.equivFunL : E →L[ℝ] (Fin n → ℝ))).differentiable
+  -- This gives us the subalgebra of polynomials.
   let generator_sigma : Set C(E, ℝ) := Set.range coord_sigma
   have hgen_diff : ∀ f ∈ generator_sigma, Differentiable ℝ f := by
     rintro _ ⟨i, rfl⟩
@@ -273,6 +283,7 @@ theorem invariance_of_domain_interior (f : E → E)
     have : generator_sigma ⊆ D := hgen_diff
     have : A_sigma ≤ D := Algebra.adjoin_le this
     exact fun f hf => this hf
+  -- This subalgebra of polynomials separates points.
   have sep_sigma : A_sigma.SeparatesPoints := by
     intro x y hxy
     have hequiv: b.toBasis.equivFunL x ≠ b.toBasis.equivFunL y := by simpa
@@ -283,6 +294,7 @@ theorem invariance_of_domain_interior (f : E → E)
     let f := coord_sigma i
     have hf_mem : f ∈ A_sigma := Algebra.subset_adjoin (Set.mem_range_self i)
     exact ⟨f, ⟨Set.mem_image_of_mem (fun f ↦ f.1) (hf_mem), hi⟩⟩
+  -- Define component functions of `G`.
   let G_i (i : Fin n) : C(E, ℝ) :=
     { toFun := fun y => b.toBasis.equivFunL (G y) i,
       continuous_toFun := by
@@ -294,30 +306,32 @@ theorem invariance_of_domain_interior (f : E → E)
       have h_zero : (l.symm : (Fin n → ℝ) →L[ℝ] E) = 0 := norm_eq_zero.1 h_eq.symm
       let w : Fin n → ℝ := fun _ => 1
       have hw : w ≠ 0 := by
-        haveI : Nonempty (Fin n) := Fin.pos_iff_nonempty.mp h1
+        haveI : Nonempty (Fin n) := Fin.pos_iff_nonempty.mp
+          ((Module.finrank_pos_iff_of_free ℝ E).mpr hnontrivial)
         rcases (show Nonempty (Fin n) by infer_instance) with ⟨i⟩
         intro h
         have : w i = 0 := congr_fun h i
         linarith
       have : (l.symm : (Fin n → ℝ) →L[ℝ] E) w = 0 := by rw [h_zero]; rfl
-      have : l.symm w = 0 := this
       have : l (l.symm w) = l 0 := congrArg l this
       rw [l.apply_symm_apply w, map_zero] at this
       exact hw this
+  -- Define `C` as the operator norm for l.symm
   let C := ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖
   rcases hδ with ⟨δ, hδ1, ⟨hδ2, hδ3⟩⟩
   let ε' := δ / (2 * C)
-  have hε' : 0 < ε' := by
-    apply div_pos
-    · exact RCLike.ofReal_pos.mp hδ1
-    · apply mul_pos
-      · exact zero_lt_two
-      · exact hpos_symm
-  have approx (i : Fin n) := ContinuousMap.exists_mem_subalgebra_near_continuous_of_isCompact_of_separatesPoints sep_sigma (G_i i) hsigmacompact hε'
+  have hε' : 0 < ε' := div_pos (RCLike.ofReal_pos.mp hδ1)
+    (mul_pos zero_lt_two hpos_symm)
+  -- Using the Stone-Weierstrass theorem, pick each `P_i` to be `ε'-close` to each `G_i`.
+  have approx (i : Fin n) :=
+    ContinuousMap.exists_mem_subalgebra_near_continuous_of_isCompact_of_separatesPoints
+    sep_sigma (G_i i) hsigmacompact hε'
   choose p_i hp_i using approx
+  -- Construct `P` as a function from `ℝ^n` to `ℝ^n` using the component functions `P_i`.
   let P : C(E, E) :=
     { toFun := fun y => b.toBasis.equivFunL.symm (fun i => (p_i i : C(E, ℝ)) y),
       continuous_toFun := by fun_prop}
+  -- The difference between `P` and `G` on `Σ` is bounded by `δ`
   have hP_bound : ∀ y ∈ sigma , ‖P y - G y‖ < δ := by
     intro y hy
     let v : Fin n → ℝ := fun i => (p_i i : C(E, ℝ)) y - (b.toBasis.equivFunL (G y)) i
@@ -336,49 +350,54 @@ theorem invariance_of_domain_interior (f : E → E)
       rw [h_repr_eq, hG, ← l.symm.map_sub, h_simp]
       rfl
     rw [hP_eq]
-    have step2 : ‖l.symm v‖ ≤ ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖ * ‖v‖ :=
-      ContinuousLinearMap.le_opNorm_of_le (l.symm : (Fin n → ℝ) →L[ℝ] E) (le_refl ‖v‖)
-    have step3 : ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖ * ‖v‖ <
-            ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖ * ε' := mul_lt_mul_of_pos_left hnorm_v hpos_symm
-    have step4 : ‖l.symm v‖ < ‖(l.symm : (Fin n → ℝ) →L[ℝ] E)‖ * ε' := lt_of_le_of_lt step2 step3
     calc
-      ‖l.symm v‖ < C * ε' := step4
+      ‖l.symm v‖ < C * ε' := lt_of_le_of_lt (ContinuousLinearMap.le_opNorm_of_le
+      (l.symm : (Fin n → ℝ) →L[ℝ] E) (le_refl ‖v‖)) (mul_lt_mul_of_pos_left hnorm_v hpos_symm)
       _ = δ / 2 := by
         unfold ε'
         field_simp
         rw [div_self_eq_one₀]
         exact Ne.symm (ne_of_lt hpos_symm)
       _ < δ := half_lt_self hδ1
-  letI : MeasurableSpace E := borel E
-  haveI : BorelSpace E := ⟨rfl⟩
-  have h_sphere_null := MeasureTheory.Measure.addHaar_sphere_of_ne_zero volume c (ne_of_gt hε1)
-  have hp_i_diff (i : Fin n) : Differentiable ℝ (p_i i) := hA_diff (p_i i) (hp_i i).1
-  have hP_diff : Differentiable ℝ P := by
-    have h1 : Differentiable ℝ (fun y => fun i => (p_i i) y) := differentiable_pi.mpr hp_i_diff
-    exact (l.symm : (Fin n → ℝ) →L[ℝ] E).differentiable.comp h1
-  have hP_image_null : volume (P '' (sphere c ε)) = 0 := MeasureTheory.addHaar_image_eq_zero_of_differentiableOn_of_addHaar_eq_zero volume hP_diff.differentiableOn h_sphere_null
-  have sigma1_subset_sigma : sigma1 ⊆ sigma := Set.subset_union_left
+  -- This ensures that `P` does not vanish on `Σ₁` using hδ3
   have h0_notin_image : (0 : E) ∉ P '' sigma1 := by
     rintro ⟨y, hy, h⟩
     have hG : ‖(G y :E)‖ ≥ δ := (hδ3 y hy)
-    have hP : ‖P y - G y‖ < δ := hP_bound y (sigma1_subset_sigma hy)
+    have hP : ‖P y - G y‖ < δ := hP_bound y (Set.subset_union_left hy)
     rw [h] at hP
     have : ‖(G y : E)‖ = ‖G y - P y‖ := by rw [h, sub_zero]
     simp only [_root_.zero_sub, norm_neg] at hP
     linarith
+  -- It is possible that `P` vanishes on `Σ₂`, so we construct a perturbation `P'` that does not.
+  letI : MeasurableSpace E := borel E
+  haveI : BorelSpace E := ⟨rfl⟩
+  -- `Σ₂` has measure `0`.
+  have h_sphere_null := MeasureTheory.Measure.addHaar_sphere_of_ne_zero volume c (ne_of_gt hε1)
+  -- `P` is differentiable.
+  have hp_i_diff (i : Fin n) : Differentiable ℝ (p_i i) := hA_diff (p_i i) (hp_i i).1
+  have hP_diff : Differentiable ℝ P :=
+  (l.symm : (Fin n → ℝ) →L[ℝ] E).differentiable.comp (differentiable_pi.mpr hp_i_diff)
+  -- So the image of `Σ₂` under P also has measure `0`/
+  have hP_image_null : volume (P '' (sphere c ε)) = 0 :=
+    MeasureTheory.addHaar_image_eq_zero_of_differentiableOn_of_addHaar_eq_zero volume
+    hP_diff.differentiableOn h_sphere_null
+  -- As the image of `Σ₂` under P also has measure `0`, we can find a point v in the ball of radius
+  -- δ that is neither in `Σ₁` nor `Σ₂`
   have ⟨v, hvnorm, hv1, hv2⟩ : ∃ (v: E), ‖v‖ < δ ∧ ¬ v ∈ P '' sigma1 ∧ ¬ v ∈ P '' sigma2:= by
     by_cases hsigma1nonempty : sigma1.Nonempty
     · have hP_cont : ContinuousOn (fun v => ‖P v‖) sigma1 := by fun_prop
-      let ⟨d, hd1, hd2⟩ := IsCompact.exists_isMinOn hsigma1compact hsigma1nonempty hP_cont
-      have hd3 : 0 < ‖P d‖ := by
+      -- Let `d` be a point of `Σ₁` such that `‖P(d)‖` takes its minimum value.
+      let ⟨d, hd, hd2⟩ := IsCompact.exists_isMinOn hsigma1compact hsigma1nonempty hP_cont
+      have hnormpd : 0 < ‖P d‖ := by
         simp only [norm_pos_iff, ne_eq]
         by_contra heq0
         have : 0 ∈ P '' sigma1 := by
           rw [← heq0]
-          exact Set.mem_image_of_mem (⇑P) hd1
+          exact Set.mem_image_of_mem (⇑P) hd
         exact h0_notin_image this
+      -- Let `k` be the minimum of these two, to ensure both properties.
       let k := min ‖P d‖ δ
-      have hk : 0 < k := lt_min_iff.mpr ⟨hd3, hδ1⟩
+      have hk : 0 < k := lt_min_iff.mpr ⟨hnormpd, hδ1⟩
       have hball_pos := measure_ball_pos volume (0 : E) hk
       have hnot_subset : ¬ (ball 0 k ⊆ P '' sphere c ε) := by
         intro hsub
@@ -389,21 +408,16 @@ theorem invariance_of_domain_interior (f : E → E)
       rw [Set.not_subset] at hnot_subset
       rcases hnot_subset with ⟨v, hvnorm, hv1⟩
       use v
-      constructor
-      · have hnormk : ‖v‖ < k := mem_ball_zero_iff.mp hvnorm
-        have : k ≤ δ := min_le_right ‖P d‖ δ
-        linarith
-      · constructor
-        · intro hin1
-          rcases hin1 with ⟨x, hx, rfl⟩
-          have : ‖P x‖ ≥ ‖P d‖ := by
-            rw [isMinOn_iff] at hd2
-            exact hd2 x hx
-          have : ‖P x‖ < k := mem_ball_zero_iff.mp hvnorm
-          have : k ≤ ‖P d‖ := min_le_left ‖P d‖ δ
-          linarith
-        · intro hin2
-          exact hv1 hin2
+      refine ⟨by linarith [mem_ball_zero_iff.mp hvnorm, min_le_right ‖P d‖ δ],
+        ⟨?_, fun hin2 ↦ hv1 hin2⟩⟩
+      intro hin1
+      rcases hin1 with ⟨x, hx, rfl⟩
+      have : ‖P x‖ ≥ ‖P d‖ := by
+        rw [isMinOn_iff] at hd2
+        exact hd2 x hx
+      have : ‖P x‖ < k := mem_ball_zero_iff.mp hvnorm
+      have : k ≤ ‖P d‖ := min_le_left ‖P d‖ δ
+      linarith
     · have hball_pos := measure_ball_pos volume (0 : E) hδ1
       have hnot_subset2 : ¬ (ball 0 δ ⊆ P '' sigma2) := by
         intro hsub
@@ -411,122 +425,102 @@ theorem invariance_of_domain_interior (f : E → E)
         grind
       rcases Set.not_subset.1 hnot_subset2 with ⟨v, hv_in_ball, hv_notin_sigma2⟩
       use v
-      constructor
-      · exact mem_ball_zero_iff.mp hv_in_ball
-      · constructor
-        · intro h1
-          exfalso
-          rcases h1 with ⟨x, hx, rfl⟩
-          exact hsigma1nonempty ⟨x, hx⟩
-        · grind
-  let P' : C(E, E) :=
-    { toFun := fun y => P y - v,
-      continuous_toFun:= by fun_prop}
+      refine ⟨mem_ball_zero_iff.mp hv_in_ball, ⟨?_, by grind⟩⟩
+      intro h1
+      exfalso
+      rcases h1 with ⟨x, hx, rfl⟩
+      exact hsigma1nonempty ⟨x, hx⟩
+  -- Let `P'` be the perturbation of `P` such that `P'(y) = P(y) - v`.
+  let P' : C(E, E) := { toFun := fun y => P y - v, continuous_toFun:= by fun_prop}
+  -- `v` is not in `Σ`.
   have hv_notin_sigma : v ∉ P '' sigma := by
     rw [Set.image_union]
     intro h
     rcases h with (h1 | h2)
     · exact hv1 h1
     · exact hv2 h2
-  have hP'_nonvanishing_sigma : ∀ y ∈ sigma, P' y ≠ 0 := by
-    intro y hy
-    dsimp [P']
-    intro h_eq
-    have : P y = v := sub_eq_zero.mp h_eq
-    exact hv_notin_sigma ⟨y, hy, this⟩
-  let G_tilde : E → E := fun y => P' (Phi y)
-  have hG_tilde_cont : ContinuousOn G_tilde (f '' closedBall 0 1):= by
-    unfold G_tilde
+  -- `P'` is never `0` on `Σ`.
+  have hP'_nonvanishing_sigma : ∀ y ∈ sigma, P' y ≠ 0 := fun y hy h_eq ↦
+    hv_notin_sigma ⟨y, hy, sub_eq_zero.mp h_eq⟩
+  -- Define `Gtilde : f(B^n) → ℝ^n` as `Gtilde(y) = P'(Φ(y))`.
+  let Gtilde : E → E := fun y => P' (Phi y)
+  -- `Gtilde` is continuous.
+  have hGtilde_cont : ContinuousOn Gtilde (f '' closedBall 0 1):= by
+    unfold Gtilde
     rw [continuousOn_iff_continuous_restrict]
-    apply Continuous.comp ?_ ?_
-    · exact ContinuousMap.continuous P'
-    · exact ContinuousOn.restrict hPhicont
-  specialize hStability_of_zero G_tilde hG_tilde_cont
-  have h7 : ∀ y ∈ f '' (closedBall (0 : E) 1), ‖G y - G_tilde y‖ ≤ 1 := by
+    exact Continuous.comp (ContinuousMap.continuous P') (ContinuousOn.restrict hPhicont)
+  -- `Gtilde` is never `0`.
+  have hGtilde_nonzero : ∀ y ∈ f '' closedBall 0 1, (P' ∘ Phi) y ≠ 0 :=
+  fun y hy => hP'_nonvanishing_sigma (Phi y) (hPhiimg y hy)
+  -- We bound the difference between `G` and `Gtilde` by `1`.
+  have hpeturbbound : ∀ y ∈ f '' (closedBall (0 : E) 1), ‖G y - Gtilde y‖ ≤ 1 := by
     intro y hy
-    -- There are two possible cases for the norm of y - c
-    by_cases hP :  ε < ‖y - c‖
-    · have hPhi : Phi y = y := by
+    -- There are two possible cases for the norm of `y - c`.
+    by_cases hP : ε < ‖y - c‖
+    · -- If `ε < ‖y - c‖`, then `Φ(y) = y`
+      -- Thus `Gtilde(y) = G(Φ(y))`
+      unfold Gtilde
+      have hPhi : Phi y = y := by
         unfold Phi
         have hright : ε / ‖y - c‖ < 1 := by
           have hyc : 0 < ‖y - c‖ := by linarith
           rwa [div_lt_one hyc]
         rw [max_eq_right_of_lt hright]
         simp
-      unfold G_tilde
       rw [hPhi]
-      have hy_sigma1 : y ∈ sigma1 := ⟨hy, le_of_lt hP⟩
-      have hy_sigma : y ∈ sigma := Or.inl hy_sigma1
+      -- We are using `P' = P - v`, `∀ y ∈ Σ, ‖P y - ↑(G y)‖ < δ` and `‖v‖ < δ`
       calc
         ‖G y - P' y‖ = ‖G y - (P y - v)‖ := rfl
-        _ = ‖(G y - P y) + v‖ := by rw [sub_sub_eq_add_sub, add_sub_right_comm]
-        _ ≤ ‖G y - P y‖ + ‖v‖ := norm_add_le _ _
-        _ = ‖P y - G y‖ + ‖v‖ := by rw [norm_sub_rev]
-        _ ≤ δ + ‖v‖ := by grw [hP_bound y hy_sigma]
-        _ = ‖v‖ + δ := add_comm _ _
-        _ ≤ δ + δ := by grw [hvnorm]
-        _ = 2 * δ := Eq.symm (two_mul δ)
+        _ ≤ _ := by grw [sub_sub_eq_add_sub, add_sub_right_comm, norm_add_le, norm_sub_rev,
+          hP_bound y (Or.inl ⟨hy, le_of_lt hP⟩), add_comm, hvnorm]
         _ ≤ _ := by linarith
-    · simp only [not_lt] at hP
-      unfold G_tilde
+    · -- If `‖y - c‖ ≤ ε`, then `Φ y ∈ Σ₂`.
+      simp only [not_lt] at hP
+      unfold Gtilde
       have hy_neq_c : c ≠ y := by
         by_contra h
         rw [← h] at hy
         exact hc2 hy
-      have hpos : 0 < ‖y - c‖ := norm_pos_iff.mpr (sub_ne_zero.mpr (Ne.symm hy_neq_c))
-      have hleft : 1 ≤ ε / ‖y - c‖ := (one_le_div hpos).mpr hP
+      have hleft : 1 ≤ ε / ‖y - c‖ :=
+        (one_le_div (norm_pos_iff.mpr (sub_ne_zero.mpr (Ne.symm hy_neq_c)))).mpr hP
       have hPhi : Phi y = c + (ε / ‖y - c‖) • (y - c) := by
         unfold Phi
         rwa [max_eq_left]
       have hyimg : Phi y ∈ sphere c ε := by
         rw [hPhi]
-        have : y - c ≠ 0 := sub_ne_zero_of_ne (Ne.symm hy_neq_c)
-        simp [mem_sphere_iff_norm, add_sub_cancel_left, norm_smul, this, hε1.le]
-      have hPhi_y : ‖Phi y - c‖ = ε := mem_sphere_iff_norm.mp hyimg
-      have := hG_small (Phi y)
-      have h_phi_in_sigma : Phi y ∈ sigma := Or.inr hyimg
-      have hP_approx : ‖P (Phi y) - G (Phi y)‖ < δ := hP_bound (Phi y) h_phi_in_sigma
-      have hP_approx_le : ‖P (Phi y)‖ ≤ ‖(G (Phi y) : E)‖ + δ := by
-        have h := le_of_lt hP_approx
+        simp [mem_sphere_iff_norm, add_sub_cancel_left, norm_smul,
+          (sub_ne_zero_of_ne (Ne.symm hy_neq_c)), hε1.le]
+      have hP_approx : ‖P (Phi y) - G (Phi y)‖ < δ := hP_bound (Phi y) (Or.inr hyimg)
+      have hP_approx_le : ‖P (Phi y)‖ ≤ ‖(G (Phi y) : E)‖ + δ :=
         calc
-          ‖P (Phi y)‖ = ‖G (Phi y) + (P (Phi y) - G (Phi y))‖ := by simp
-          _ ≤ ‖(G (Phi y) : E)‖ + ‖P (Phi y) - G (Phi y)‖ := norm_add_le _ _
-          _ ≤ ‖(G (Phi y) : E)‖ + δ := add_le_add (le_refl ‖(G (Phi y) : E)‖) (le_of_lt hP_approx)
-      have hv_le : ‖v‖ ≤ 0.1 := by linarith [hvnorm, hδ2]
+          ‖P (Phi y)‖ = ‖G (Phi y) + (P (Phi y) - G (Phi y))‖ := by simp only [add_sub_cancel]
+          _ ≤ ‖(G (Phi y) : E)‖ + δ := by grw [norm_add_le, add_le_add (le_refl ‖(G (Phi y) : E)‖)
+            (le_of_lt hP_approx)]
       have hG_phi_small : ‖(G (Phi y) : E)‖ ≤ 0.1 := by
         rw [dist_eq_norm] at hc1
-        have := le_of_lt hc1
         have : ‖Phi y - f 0‖ < 2 * ε := calc
-          ‖Phi y - f 0‖ = ‖(Phi y - c) + (c - f 0)‖ := by simp
-          _≤ ‖Phi y - c‖ + ‖c - f 0‖ := norm_add_le _ _
-          _ = ε + ‖c - f 0‖ := by rw [hPhi_y]
+          ‖Phi y - f 0‖ = ‖(Phi y - c) + (c - f 0)‖ := by grw [sub_add_sub_cancel]
+          _≤ ‖Phi y - c‖ + ‖c - f 0‖ := by grw [norm_add_le]
+          _ = ε + ‖c - f 0‖ := by rw [mem_sphere_iff_norm.mp hyimg]
           _ < ε + ε := add_lt_add_right hc1 ε
           _ = 2 * ε := by ring
-        rw [← h2εeq, ← dist_eq_norm ] at this
-        have h0 : (0 : E) ∈ closedBall 0 1 := mem_closedBall_comm.mp (by simp)
-        have hf0_image : f 0 ∈ f '' closedBall 0 1 := ⟨0, by simp [mem_closedBall, zero_le_one], rfl⟩
+        rw [← h2εeq, ← dist_eq_norm] at this
         have := h2ε1 this
-        rw [hG0]  at this
-        simp only [dist_zero_right] at this
+        simp only [hG0, dist_zero_right] at this
         exact le_of_lt this
       specialize hG_small y hP
       calc
         ‖G y - P' (Phi y)‖
           = ‖G y - (P (Phi y) - v)‖ := rfl
-        _ ≤ ‖(G y - P (Phi y)) + v‖ := by rw [sub_sub_eq_add_sub, add_sub_right_comm]
-        _ ≤ ‖G y - P (Phi y)‖ + ‖v‖ := norm_add_le _ _
-        _ ≤ ‖(G y : E)‖ + ‖P (Phi y)‖ + ‖v‖ := by grw [norm_sub_le]
+        _ ≤ ‖(G y : E)‖ + ‖P (Phi y)‖ + ‖v‖ := by grw [sub_sub_eq_add_sub, add_sub_right_comm,
+          norm_add_le, norm_sub_le]
         _ ≤ _ := by linarith
-  have h := hStability_of_zero (fun y hy => le_trans (h7 y hy) (by norm_num))
-  rcases h with ⟨y, hy, hzero⟩
-  have hG_tilde_nonzero : ∀ y ∈ f '' closedBall 0 1, (P' ∘ Phi) y ≠ 0 :=
-  fun y hy => hP'_nonvanishing_sigma (Phi y) (hPhiimg y hy)
+  -- We derive a contradiction using the lemma for the stability of zero.
+  have ⟨y, hy1, hy2⟩ := (hStability_of_zero Gtilde hGtilde_cont) hpeturbbound
+  exact hGtilde_nonzero y hy1 hy2
 
-  have ⟨y, hy1, hy2⟩ := hStability_of_zero h7
-  exact hG_tilde_nonzero y hy1 hy2
-
-
-
+/-- Let `f : ℝ^n → ℝ^n` be a continuous and injective function.
+Then f is an open mapping.-/
 theorem invariance_of_domain_open_map (f : E → E)
     (hf_cont : Continuous f) (hf_inj : Function.Injective f) : IsOpenMap f := by
   intro U hU
@@ -542,14 +536,15 @@ theorem invariance_of_domain_open_map (f : E → E)
     trans ball x' ε
     · exact closedBall_subset_ball (div_two_lt_of_pos hε)
     · exact hball
-  specialize hclosedball x hxU
-  rcases hclosedball with ⟨ε, hε , hclosedball⟩
+  have ⟨ε, hε , hclosedball⟩ := hclosedball x hxU
+  -- Define `g` as a scaling and translating function.
   let g := fun (v : E) => ε • v + x
   have hg_cont : Continuous g := ((continuous_const_smul ε).add continuous_const : Continuous g)
   have hg_inj : Function.Injective g:= by simp [Function.Injective, g, hε.ne']
   let e := f ∘ g
   have he_cont : Continuous e := Continuous.comp hf_cont hg_cont
   have he_inj : Function.Injective e := Function.Injective.comp hf_inj hg_inj
+  -- `e(0)` is in the interior using the prior version.
   have h_interior : e 0 ∈ interior (e '' closedBall 0 1) :=
     invariance_of_domain_interior e he_cont.continuousOn he_inj.injOn
   have h_g_eq : g '' closedBall 0 1 = closedBall x ε := by
@@ -561,11 +556,8 @@ theorem invariance_of_domain_open_map (f : E → E)
     rw [abs_of_pos hε]
   use interior (f '' U)
   refine ⟨interior_subset, isOpen_interior, ?_⟩
-  unfold e at h_interior
-  rw [Set.image_comp] at h_interior
-  rw [h_g_eq] at h_interior
-  unfold g at h_interior
+  unfold e g at h_interior
+  rw [Set.image_comp, h_g_eq] at h_interior
   simp only [Function.comp_apply, smul_zero, zero_add] at h_interior
-  rw [hfx] at h_interior
-  grw [hclosedball] at h_interior
+  grw [hfx, hclosedball] at h_interior
   exact h_interior

@@ -16,15 +16,11 @@ import Mathlib.MeasureTheory.Measure.Lebesgue.EqHaar
 import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
 import Mathlib.MeasureTheory.Function.Jacobian
 
-variable {E} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
-
 open MeasureTheory MeasureTheory.Measure Metric
-set_option linter.unnecessarySimpa false
-
+variable {E} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
 variable (E) in class BrouwerFixedPoint : Prop where
   brouwer_fixed_point (f : (closedBall (0 : E) 1) → (closedBall 0 1))
     (hf : Continuous f) : ∃ x, f x = x
-
 variable [BrouwerFixedPoint E]
 
 
@@ -94,8 +90,9 @@ theorem invariance_of_domain_interior (f : E → E)
       exact ContinuousOn.restrict
         (hGtilde.comp hf_cont (Set.mapsTo_image f (closedBall 0 1)))
     -- We apply Brouwer's theorem. In particular, the fixed point of `Gtilde` is `f(x)`.
-    have ⟨x, hx⟩ := brouwer_fixed_point (Set.MapsTo.restrict diff_fun (closedBall 0 1)
-      (closedBall 0 1) hMaps_To) (ContinuousOn.mapsToRestrict diff_fun_cont_on hMaps_To)
+    have ⟨x, hx⟩ := BrouwerFixedPoint.brouwer_fixed_point (Set.MapsTo.restrict diff_fun
+      (closedBall 0 1) (closedBall 0 1) hMaps_To)
+      (ContinuousOn.mapsToRestrict diff_fun_cont_on hMaps_To)
     refine ⟨f x, ⟨⟨x ,⟨(by simpa [mem_closedBall, dist_zero_right] using
       mem_closedBall_zero_iff.mp x.2), rfl⟩⟩, ?_⟩⟩
     simp only [Subtype.ext_iff, Set.MapsTo.val_restrict_apply, sub_eq_self, diff_fun] at hx
